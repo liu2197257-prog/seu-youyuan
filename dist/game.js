@@ -45,6 +45,7 @@
     }
     if (runtime.selectedItem && !(state.inventory || []).includes(runtime.selectedItem)) runtime.selectedItem = null;
     PineRenderer.render(state, runtime);
+    updateBackButton();
     processEffects(result.effects || [], action, previous).catch(error => { console.error(error); PineRenderer.toast('演出已安全停止，可以继续操作。'); });
     return Object.assign({}, result, { state, changed: previous !== state });
   }
@@ -140,7 +141,7 @@
     const playing = PineRenderer.cinematic(html,6500);
     await PineRenderer.wait(2950); if (token === PineRenderer.generation) PineAudio.play('break');
     await playing;
-    runtime.prologueMode = 'pine'; PineRenderer.render(state,runtime);
+    runtime.prologueMode = 'pine'; PineRenderer.render(state,runtime); updateBackButton();
   }
   async function playSelfStory() {
     const lines = PineContent.dialogues.act3.selfAccount;
@@ -180,12 +181,12 @@
   function enterTarget(target) {
     if (!target) return;
     if (chapter() === 'act4' && target.scene === 'camera' && state.scene === 'act4_ending') {
-      runtime.letterCamera = true; PineRenderer.render(state,runtime); return;
+      runtime.letterCamera = true; PineRenderer.render(state,runtime); updateBackButton(); return;
     }
     const scene = fullScene(target.scene || target.target);
     if (!scene || !PineState.canEnter(state,scene)) { PineRenderer.toast('这里现在还没有回应。'); return; }
     if (scene === state.scene) {
-      if (state.era === 'prologue' && scene === 'prologue_pine') { runtime.prologueMode = 'camera'; PineRenderer.render(state,runtime); }
+      if (state.era === 'prologue' && scene === 'prologue_pine') { runtime.prologueMode = 'camera'; PineRenderer.render(state,runtime); updateBackButton(); }
       return;
     }
     dispatch({ type: 'ENTER', scene });
@@ -309,7 +310,7 @@
   function restart() {
     PineRenderer.beginScene(); PineAudio.stopAll();
     state = PineState.createInitialState(); runtime = { player:{x:640,y:620}, move:{x:0,y:0}, nearby:null, selectedItem:null, prologueMode:'camera', letterCamera:false };
-    noteAttempt = []; hintLevels = {}; PineRenderer.render(state,runtime); processIntro();
+    noteAttempt = []; hintLevels = {}; PineRenderer.render(state,runtime); updateBackButton(); processIntro();
   }
   function processIntro() {
     const chapter = state.chapter;
@@ -359,7 +360,7 @@
       case 'SELECT_ITEM': {
         const selected = runtime.selectedItem;
         if (/drawingFragment/.test(data.item) && selected && /drawingFragment/.test(selected) && selected !== data.item) openPuzzle('OPEN_BLUEPRINT',{});
-        else { runtime.selectedItem = selected === data.item ? null : data.item; PineRenderer.render(state,runtime); }
+        else { runtime.selectedItem = selected === data.item ? null : data.item; PineRenderer.render(state,runtime); updateBackButton(); }
         break;
       }
       case 'USE_ON_TARGET': {
@@ -407,6 +408,19 @@
     }
     if (global.PinePuzzleUI) PinePuzzleUI.open(action, Object.assign({},data,{state:viewState(),runtime,dispatch,showDocument,visualFourNotes}));
     else PineRenderer.toast('这里的机关还没有响应。');
+  }
+  function updateBackButton() {
+    const button = $('back-button');
+    if (!button) return;
+    const mapScene = fullScene('map');
+    // 地图内、尾声、以及不可返回的单向记忆里不显示。
+    const canBack = !sceneIsMap() && state.era !== 'epilogue' && !!mapScene && PineState.canEnter(state, mapScene);
+    button.hidden = !canBack;
+  }
+  function goBackToCampus() {
+    const mapScene = fullScene('map');
+    if (!mapScene || !PineState.canEnter(state, mapScene)) { PineRenderer.toast('现在还不能离开这里。'); return; }
+    dispatch({ type: 'ENTER', scene: mapScene });
   }
   function onDrag(data) { if (global.PinePuzzleUI) PinePuzzleUI.drag(data,{state:viewState(),runtime,dispatch,showDocument,visualFourNotes}); }
   /* 横屏：先尝试全屏 + 方向锁定；手机禁用旋转或不支持时，整体旋转画布兜底。 */
@@ -475,10 +489,11 @@
       PineInput.init({ action:onAction, drag:onDrag, move:vector => { runtime.move = vector; }, interact:() => enterTarget(runtime.nearby), escape:() => PineRenderer.escape() });
       $('interact-button').addEventListener('click',() => enterTarget(runtime.nearby));
       $('amber-button').addEventListener('click',openAmber);
+      $('back-button').addEventListener('click',goBackToCampus);
       $('archive-button').addEventListener('click',openArchives);
       $('restart-button').addEventListener('click',restartConfirm);
       $('audio-button').addEventListener('click',async () => { const enabled = await PineAudio.toggle(); $('audio-button').textContent = enabled ? '声' : '静'; $('audio-button').setAttribute('aria-pressed',String(enabled)); $('audio-button').setAttribute('aria-label',enabled?'关闭声音':'开启声音'); if(enabled) PineAudio.play('wind'); });
-      state = PineState.createInitialState(); PineRenderer.render(state,runtime); processIntro();
+      state = PineState.createInitialState(); PineRenderer.render(state,runtime); updateBackButton(); processIntro();
       setupOrientation();
       requestAnimationFrame(frame);
       global.PineGame = { dispatch, get state(){return state;}, get runtime(){return runtime;}, openAmber, restart, onAction, visualFourNotes,

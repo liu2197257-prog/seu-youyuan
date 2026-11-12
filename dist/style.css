@@ -29,6 +29,9 @@ button:disabled { opacity: .42; cursor: default; }
 .hud { position: absolute; z-index: 10; }
 #topbar { left: 0; right: 0; top: 0; display: flex; align-items: flex-start; justify-content: space-between; padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left)); pointer-events: none; }
 .era-label { padding: 8px 16px; color: var(--hud-text); background: var(--hud); border: 1px solid #776b54; border-radius: 2px; letter-spacing: .18em; font-size: clamp(13px, 1.8vw, 19px); }
+.top-left { display: flex; align-items: flex-start; gap: 8px; pointer-events: auto; }
+.back-button { min-height: 46px; min-width: 84px; padding: 0 16px; border: 1px solid #82745b; border-radius: 23px; background: var(--hud); color: var(--hud-text); font-size: 15px; letter-spacing: .05em; }
+.back-button:hover { background: #50483a; }
 .top-actions { display: flex; gap: 8px; pointer-events: auto; }
 .icon-button { width: 46px; min-width: 44px; height: 46px; min-height: 44px; border: 1px solid #82745b; border-radius: 50%; background: var(--hud); color: var(--hud-text); font-size: 20px; display: grid; place-items: center; }
 .icon-button:hover { background: #50483a; }

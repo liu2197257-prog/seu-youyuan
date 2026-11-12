@@ -143,7 +143,8 @@
         U.hotspot('filterFrame','空滤镜框',210,490,150,150,'USE_ON_TARGET',{ target:'filterFrame' }) +
         U.hotspot('backCampus','返回校园',30,606,170,86,'ENTER_SCENE',{ scene:'campus' }),
       overlay: `<rect x="165" y="95" width="950" height="480" fill="none" stroke="#eee3c7" stroke-width="3" opacity=".45"/><path d="M640 90v22M640 558v22M160 335h22M1100 335h22" stroke="#eee3c7" stroke-width="3"/>
-        ${lens ? '<circle cx="255" cy="530" r="24" fill="#4e553b" stroke="#2f3427" stroke-width="5"/><path d="M266 508l12 9-9 7" fill="#d0c5aa"/>' : '<circle cx="255" cy="530" r="25" fill="none" stroke="#9b8d70" stroke-width="5" stroke-dasharray="5 5"/>'}`,
+        ${lens ? '<circle cx="255" cy="530" r="24" fill="#4e553b" stroke="#2f3427" stroke-width="5"/><path d="M266 508l12 9-9 7" fill="#d0c5aa"/>' : '<circle cx="255" cy="530" r="25" fill="none" stroke="#9b8d70" stroke-width="5" stroke-dasharray="5 5"/>'}
+        ${!lens && (state.inventory || []).includes('lens') ? '<rect class="quiet-pulse" x="200" y="480" width="170" height="170" rx="10" fill="none" stroke="#c8ab6d" stroke-width="4"/>' : ''}`,
       character: keeper
     });
   }

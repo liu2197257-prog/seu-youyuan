@@ -216,6 +216,22 @@ async function main() {
       return { scene: PineGame.state.scene };
     })()`);
     record('UI 路径：六朝松近景可返回校园', backOut.scene === 'prologue_campus', JSON.stringify(backOut));
+
+    // 显式「← 校园」按钮：地图上隐藏，近景可见，点击可退出。
+    const backBtn = await cdp.eval(`(async () => {
+      const btn = document.getElementById('back-button');
+      const inMap = { hidden: btn.hidden };
+      PineGame.dispatch({ type: 'ENTER', scene: 'prologue_pine' });
+      await new Promise(r => setTimeout(r, 300));
+      const inCloseup = { hidden: btn.hidden, visible: !btn.hidden && getComputedStyle(btn).display !== 'none' };
+      if (!btn.hidden) btn.click();
+      await new Promise(r => setTimeout(r, 320));
+      return { inMap, inCloseup, after: PineGame.state.scene, afterHidden: btn.hidden };
+    })()`);
+    record('地图上隐藏「返回校园」按钮', backBtn.inMap.hidden === true, JSON.stringify(backBtn.inMap));
+    record('近景显示「返回校园」按钮且可点击退出',
+      backBtn.inCloseup.visible === true && backBtn.after === 'prologue_campus' && backBtn.afterHidden === true,
+      JSON.stringify(backBtn));
     await act({ type: 'ENTER', scene: 'prologue_pine' });
 
     let r = await stateOf();
