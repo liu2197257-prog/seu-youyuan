@@ -76,7 +76,19 @@
         const lines = state.prologue.watered && state.prologue.supported ? [PineContent.dialogues.prologue.sprout.afterSupport,PineContent.dialogues.prologue.sprout.afterCare] : [PineContent.dialogues.prologue.sprout.afterSupport];
         await PineRenderer.showDialogue(lines,'画面之外');
       }
-      else if (type === 'RING_ENGRAVED') { PineAudio.play('engrave'); PineRenderer.toast(`第${['一','二','三'][effect.ring-1]}圈年轮已经刻入。`,2800); }
+      else if (type === 'RING_ENGRAVED') {
+        PineAudio.play('engrave');
+        // 刻针经过窗格纹 → 台面掠过窗影；经过声波纹 → 响起大礼堂的四个音。
+        if (state.era === '1933') {
+          await PineRenderer.wait(700);
+          document.querySelectorAll('.scene-layer-overlay').forEach(g => { g.classList.add('shadow-drift'); });
+          visualFourNotes();
+        }
+        PineRenderer.toast(`第${['一','二','三'][effect.ring-1]}圈年轮已经刻入。`,2800);
+      }
+      else if (type === 'RETURN_TO_PINE') {
+        PineRenderer.toast('年轮珀的纹路亮了。回六朝松去。',3000);
+      }
       else if (type === 'PROLOGUE_GRAFTED') { PineAudio.play('graft'); await PineRenderer.wait(1800); }
       else if (type === 'RING_GRAFTED') {
         await PineRenderer.graft('act' + effect.ring);
