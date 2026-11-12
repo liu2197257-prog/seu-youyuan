@@ -255,7 +255,8 @@
     })}</g>`;
     return U.room('act4-ending', state, {
       midground: `<path d="M0 560Q300 520 620 565T1280 540V720H0Z" fill="#a99a7d"/>
-        <g class="act4-ending-visual">${PineArt.pine({ status: 'sprout', grafted: 3 }, { x: 610, y: 330, scale: 1.45, era: 'act4', vivid: true })}</g>
+        <g class="act4-ending-visual">${PineArt.pine({ status: 'sprout', grafted: 3 }, { x: 610, y: 330, scale: 1.45, era: 'act4', vivid: true })}
+          ${PineArt.sprout({ x: 618, y: 398, scale: 2.2, vivid: true, className: 'sprout-new-life-closeup' })}</g>
         <g transform="translate(1085 555)" opacity=".7"><path d="M-45 35L-65 105M45 35L65 105M0 35V110" stroke="#40372d" stroke-width="9"/><path d="M-62 0H62V48H-62Z" fill="#5c5547" stroke="#352e27" stroke-width="6"/><circle r="25" fill="#393c36" stroke="#8b7959" stroke-width="5"/></g>`,
       interactable: U.hotspot('endingCamera', '走到六朝松前的相机旁', 990, 500, 220, 170, 'ENTER_SCENE', { scene: 'camera' }),
       overlay: `<style>
@@ -286,6 +287,7 @@
     return U.room(epilogue ? 'epilogue-camera' : 'act4-camera', state, {
       midground: `<rect x="135" y="65" width="1010" height="570" rx="8" fill="#cfc5ac" stroke="#392f26" stroke-width="18"/>
         <path d="M165 95H1115V575H165Z" fill="#d9d0b9" stroke="#857558" stroke-width="4"/>${pine}
+        ${PineArt.sprout({ x: 660, y: 400, scale: 1.7, vivid: true, className: 'sprout-new-life-closeup' })}
         <path d="M140 630L90 710M1140 630L1190 710M640 630V720" stroke="#3e362c" stroke-width="12"/>
         <g transform="translate(195 475)"><path d="M0 0h105l20 35v80H0Z" fill="#4c4437" stroke="#2f2922" stroke-width="6"/><circle cx="65" cy="57" r="30" fill="#292d27" stroke="#8a795a" stroke-width="6"/><path d="M105 12l35-15v35l-35 5" fill="#665b48"/></g>
         <g transform="translate(980 480)"><path d="M0 30Q60-10 120 30L110 135H10Z" fill="#645844" stroke="#352e25" stroke-width="6"/><path d="M30 30Q30-15 60-15T90 30" fill="none" stroke="#3d3429" stroke-width="8"/>

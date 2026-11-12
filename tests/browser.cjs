@@ -149,16 +149,20 @@ async function main() {
       true;
     `);
 
-    async function settle(maxRounds = 260) {
+    async function settle(maxRounds = 320) {
+      // 需要连续多轮稳定空闲，避免把「演出尚未启动」误判为结束。
+      let idleStreak = 0;
       for (let i = 0; i < maxRounds; i++) {
         const st = await cdp.eval(`(() => ({
           idle: __t.idle(),
           dialogue: !document.getElementById('dialogue').hidden,
           cinematic: !document.getElementById('cinematic').hidden
         }))()`);
-        if (st.dialogue) { await cdp.eval(`__t.click('dialogue-next')`); await sleep(25); continue; }
-        if (st.cinematic || !st.idle) { await sleep(35); continue; }
-        return true;
+        if (st.dialogue) { idleStreak = 0; await cdp.eval(`__t.click('dialogue-next')`); await sleep(25); continue; }
+        if (st.cinematic || !st.idle) { idleStreak = 0; await sleep(40); continue; }
+        idleStreak++;
+        if (idleStreak >= 3) return true;
+        await sleep(75);
       }
       return false;
     }

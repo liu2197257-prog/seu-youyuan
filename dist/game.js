@@ -318,8 +318,16 @@
     if (chapter === 'act4' && !hasFlag(['act4IntroSeen'])) PineRenderer.showDialogue(PineContent.dialogues.act4.treeIntro,'守忆者');
   }
   async function playEnding() {
-    const html = `<svg viewBox="0 0 1280 720" width="100%" height="100%"><rect width="1280" height="720" fill="#cfc4a8"/><g transform="translate(640 370)">${PineArt.pine({status:'sprout',grafted:3},{x:0,y:0,scale:1.35,broken:true,vivid:true})}</g><g fill="#34332a">${Array.from({length:34},(_,i)=>`<circle class="falling-ink" cx="${790+(i%7)*12}" cy="${250+(i%9)*28}" r="${3+i%4}" style="animation-delay:${(i%8)*.18}s"/>`).join('')}</g></svg>`;
-    await PineRenderer.cinematic(html,6500,{sound:'sprout'});
+    // 他散成墨粒归树 → 裂口里长出新芽；裂痕保留。
+    const ink = Array.from({ length: 34 }, (_, i) =>
+      `<circle class="falling-ink" cx="${780 + (i % 7) * 13}" cy="${250 + (i % 9) * 24}" r="${3 + i % 4}" style="animation-delay:${(i % 8) * .18}s"/>`).join('');
+    const html = `<svg viewBox="0 0 1280 720" width="100%" height="100%">
+      <rect width="1280" height="720" fill="#cfc4a8"/>
+      ${PineArt.pine({ status: 'sprout', grafted: 3 }, { x: 640, y: 360, scale: 1.5, broken: true, vivid: true })}
+      ${PineArt.sprout({ x: 664, y: 404, scale: 2.6, vivid: true })}
+      <g fill="#34332a">${ink}</g>
+    </svg>`;
+    await PineRenderer.cinematic(html, 6500, { sound: 'sprout' });
   }
   function onAction(data, event) {
     const action = data.action;
