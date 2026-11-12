@@ -30,16 +30,22 @@ const URL_TO_TEST = process.argv[2] || 'http://127.0.0.1:8090/index.html';
     const ev = async expr => (await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true, userGesture: true })).result.value;
     await send('Runtime.enable'); await send('Page.enable'); await send('Log.enable');
     await send('Page.navigate', { url: URL_TO_TEST });
-    await sleep(1600);
-    const info = await ev(`(() => {
-      const fatal = document.getElementById('fatal-error');
-      return { url: location.href, title: document.title, hasGame: !!window.PineGame,
-        fatal: fatal && !fatal.hidden ? fatal.textContent : null,
-        svg: !!document.querySelector('#scene svg'),
-        hotspots: document.querySelectorAll('#scene [data-action]').length,
-        scene: window.PineGame ? PineGame.state.scene : null,
-        external: performance.getEntriesByType('resource').filter(e => /^https?:/.test(e.name) && !e.name.startsWith(location.origin)).map(e => e.name) };
-    })()`);
+    // 公网 CDN 可能较慢：轮询等待游戏内核就绪。
+    let info = null;
+    for (let i = 0; i < 40; i++) {
+      await sleep(500);
+      info = await ev(`(() => {
+        const fatal = document.getElementById('fatal-error');
+        return { url: location.href, title: document.title, hasGame: !!window.PineGame,
+          fatal: fatal && !fatal.hidden ? fatal.textContent : null,
+          svg: !!document.querySelector('#scene svg'),
+          hotspots: document.querySelectorAll('#scene [data-action]').length,
+          scene: window.PineGame ? PineGame.state.scene : null,
+          ready: document.readyState,
+          external: performance.getEntriesByType('resource').filter(e => /^https?:/.test(e.name) && !e.name.startsWith(location.origin)).map(e => e.name) };
+      })()`);
+      if (info.hasGame && info.svg) break;
+    }
     const errs = events.filter(e => e.method === 'Runtime.exceptionThrown' ||
       (e.method === 'Runtime.consoleAPICalled' && e.params.type === 'error') ||
       (e.method === 'Log.entryAdded' && e.params.entry.level === 'error')).map(e => JSON.stringify(e.params).slice(0, 200));
