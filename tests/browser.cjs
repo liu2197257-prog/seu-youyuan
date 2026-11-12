@@ -207,6 +207,17 @@ async function main() {
     })()`);
     record('UI 路径：走近六朝松出现交互按钮并可进入', uiPath.near === true && uiPath.scene === 'prologue_pine', JSON.stringify(uiPath));
 
+    // 近景必须能回到校园，否则会像之前那样卡在相机与树之间。
+    const backOut = await cdp.eval(`(async () => {
+      const el = document.querySelector('#scene [data-action="ENTER_SCENE"][data-scene="campus"]');
+      if (!el) return { error: 'no back hotspot' };
+      PineGame.onAction(Object.assign({}, el.dataset));
+      await new Promise(r => setTimeout(r, 320));
+      return { scene: PineGame.state.scene };
+    })()`);
+    record('UI 路径：六朝松近景可返回校园', backOut.scene === 'prologue_campus', JSON.stringify(backOut));
+    await act({ type: 'ENTER', scene: 'prologue_pine' });
+
     let r = await stateOf();
     record('进入六朝松近景', r.era === 'prologue' && r.scene === 'prologue_pine', JSON.stringify(r));
     await shot('01-prologue-camera');
@@ -435,6 +446,20 @@ async function main() {
     const storySeen = await cdp.eval(`PineGame.state.act.storySeen`);
     record('两栋完成后回树触发他的自述', r.changed && storySeen === true);
     await shot('19-act3-self-story');
+
+    // 树根装置必须能用 UI 打开，否则第三章会卡死。
+    const deviceUI = await cdp.eval(`(async () => {
+      const el = document.querySelector('#scene [data-action="OPEN_DEVICE"]');
+      if (!el) return { error: 'no device hotspot' };
+      PineGame.onAction(Object.assign({}, el.dataset));
+      await new Promise(r => setTimeout(r, 300));
+      const open = !document.getElementById('modal-backdrop').hidden;
+      const title = document.getElementById('modal-title').textContent;
+      PineRenderer.closeModal(true);
+      await new Promise(r => setTimeout(r, 120));
+      return { open, title };
+    })()`);
+    record('UI 路径：树前可打开树根刻轮装置', deviceUI.open === true, JSON.stringify(deviceUI));
 
     // 门槛：必须先对入记忆，再装齿轮
     r = await act({ type: 'USE', item: 'nestedWindowGear', target: 'nestedWindowSlot' });

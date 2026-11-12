@@ -77,6 +77,55 @@ test('每个场景都能渲染出合法 SVG 且包含五层结构', () => {
   }
 });
 
+test('每个非终点场景都有可用的离开方式（防软锁）', () => {
+  const eraOf = scene => scene === 'epilogue' ? 'epilogue'
+    : scene.startsWith('act4') ? '2002'
+      : scene.startsWith('act3') ? '1988'
+        : scene.startsWith('act2') ? '1959'
+          : scene.startsWith('act1') ? '1933' : 'prologue';
+  // 序章植松记忆与尾声是刻意单向/终点的场景。
+  const terminal = new Set(['epilogue', 'prologue_sprout']);
+  const state = S.PineState.createInitialState();
+  state.era = '2002';
+  state.act = { id: 'act4', gears: [], completed: {}, steps: {}, evidence: [], projected: [],
+    device: { slots: {}, memories: {}, repaired: true, amberInserted: false },
+    engraved: false, grafted: false, storySeen: false, ending: false };
+  state.ringAmber = { owned: true, rings: 2, grafted: 2, memories: [] };
+  const scenes = ['prologue_campus', 'prologue_pine', 'prologue_sprout',
+    'act1_map', 'act1_tree', 'act1_library', 'act1_hall', 'act1_gym',
+    'act2_map', 'act2_tree', 'act2_bldg54', 'act2_power', 'act2_bldg55',
+    'act3_map', 'act3_tree', 'act3_frontyard', 'act3_alumni',
+    'act4_map', 'act4_tree', 'act4_hall', 'act4_alumni', 'act4_frontyard', 'act4_memorial', 'act4_ending'];
+  const missing = [];
+  for (const scene of scenes) {
+    if (terminal.has(scene)) continue;
+    const base = JSON.parse(JSON.stringify(state));
+    base.era = eraOf(scene);
+    base.scene = scene;
+    base.phase = scene;
+    if (base.era === 'prologue') {
+      base.prologue = Object.assign({}, base.prologue, { lensInstalled: true, treeBroken: true, enteredMemory: false });
+    }
+    const view = S.PineSceneUtil.adapt(base, { player: { x: 640, y: 620 }, selectedItem: null, prologueMode: 'pine' });
+    const svg = S.PineScenes[scene](view, { player: { x: 640, y: 620 } });
+    // 出口：进入另一个场景，或收尾/推进剧情的关键动作。
+    const hasExit = /data-action="(ENTER_SCENE|MAP_TARGET|RETURN_LETTER|OPEN_DEVICE|OPEN_GRAFT)"/.test(svg);
+    if (!hasExit) missing.push(scene);
+  }
+  assert.deepEqual(missing, [], '缺少离开方式：' + missing.join(', '));
+});
+
+test('序章相机与树前都能回到校园地图', () => {
+  const state = S.PineState.createInitialState();
+  state.era = 'prologue';
+  state.prologue = Object.assign({}, state.prologue, { lensInstalled: true, treeBroken: true });
+  for (const [scene, mode] of [['prologue_pine', 'camera'], ['prologue_pine', 'pine']]) {
+    const view = S.PineSceneUtil.adapt(state, { player: { x: 640, y: 620 }, prologueMode: mode });
+    const svg = S.PineScenes[scene](view, { player: { x: 640, y: 620 } });
+    assert.match(svg, /data-scene="campus"/, `${mode} 视角缺少返回校园`);
+  }
+});
+
 test('渲染适配层把状态翻译成场景所需 flags 与别名', () => {
   const state = S.PineState.createInitialState();
   state.era = '1933';

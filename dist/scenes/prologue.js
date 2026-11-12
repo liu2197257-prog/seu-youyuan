@@ -140,7 +140,8 @@
         <g transform="translate(350 110)"><rect width="180" height="125" fill="#b8a989" stroke="#584a38" stroke-width="5"/><path d="M20 105V35h100v70" fill="#7a705b" opacity=".55"/><circle cx="130" cy="85" r="16" fill="#484239"/></g>`,
       interactable: U.hotspot('cameraBag','检查相机包',930,450,190,190,'OPEN_BAG') +
         U.hotspot('oldPhoto','查看旧照片',320,85,230,180,'SHOW_PHOTO') +
-        U.hotspot('filterFrame','空滤镜框',210,490,150,150,'USE_ON_TARGET',{ target:'filterFrame' }),
+        U.hotspot('filterFrame','空滤镜框',210,490,150,150,'USE_ON_TARGET',{ target:'filterFrame' }) +
+        U.hotspot('backCampus','返回校园',30,606,170,86,'ENTER_SCENE',{ scene:'campus' }),
       overlay: `<rect x="165" y="95" width="950" height="480" fill="none" stroke="#eee3c7" stroke-width="3" opacity=".45"/><path d="M640 90v22M640 558v22M160 335h22M1100 335h22" stroke="#eee3c7" stroke-width="3"/>
         ${lens ? '<circle cx="255" cy="530" r="24" fill="#4e553b" stroke="#2f3427" stroke-width="5"/><path d="M266 508l12 9-9 7" fill="#d0c5aa"/>' : '<circle cx="255" cy="530" r="25" fill="none" stroke="#9b8d70" stroke-width="5" stroke-dasharray="5 5"/>'}`,
       character: keeper
@@ -152,7 +153,8 @@
       midground: PineArt.pine(state.amber || {}, { x: 610, y: 365, scale: 1.7, broken: true, era: 'prologue' }) +
         `<path d="M590 180Q550 310 600 490" fill="none" stroke="#251f19" stroke-width="17"/>`,
       interactable: (!hasAmber ? `<g class="resin-rise"><path d="M615 355Q580 400 615 435Q650 400 615 355Z" fill="#80603b" stroke="#4a3928" stroke-width="5"/></g>` + U.hotspot('resin','触碰悬浮的树脂',555,330,125,135,'TAKE',{ item:'amber' }) : U.hotspot('crack','把年轮珀贴入裂口',530,225,150,280,'USE_ON_TARGET',{ target:'crack' })) +
-        U.hotspot('backCamera','返回相机',40,570,160,100,'ENTER_SCENE',{ scene:'camera' }),
+        U.hotspot('backCamera','回到取景框',40,600,160,86,'ENTER_SCENE',{ scene:'camera' }) +
+        U.hotspot('backCampus','返回校园',220,600,160,86,'ENTER_SCENE',{ scene:'campus' }),
       overlay: !hasAmber ? U.caption('树脂正逆着重力上升', 810, 390, { size: 18 }) : '',
       character: ''
     });

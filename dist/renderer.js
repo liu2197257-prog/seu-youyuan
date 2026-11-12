@@ -48,8 +48,8 @@
   function objectiveText(s) {
     const chapter = PineSceneUtil.chapter(s), act = s.act, p = s.prologue || {};
     if (chapter === 'prologue') {
-      if (!p.treeBroken) return '寻找六朝松。';
-      if (!s.ringAmber.owned) return '靠近裂口，看看那滴树脂。';
+      if (!p.lensInstalled) return '树旁架着一台相机。';
+      if (!s.ringAmber.owned) return '裂口里有一滴逆着重力上升的树脂。';
       if (!p.enteredMemory) return '把年轮珀贴入树干的不完整纹路。';
       if (!p.watered || !p.supported) return '浇灌幼苗，再用支撑木把它扶稳。';
       return '旋转对齐幼苗脚边的印记。';

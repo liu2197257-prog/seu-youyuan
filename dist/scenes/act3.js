@@ -348,8 +348,8 @@
     const hotspots = showDevice ?
       U.hotspot('rootDevice', '对入两段记忆并刻第三圈', 633, 241, 421, 353, 'OPEN_DEVICE') +
         U.hotspot('graft', '接合第三圈年轮', 287, 209, 202, 291, 'OPEN_GRAFT', { act: 'act3' }) +
-        U.hotspot('backTree', '返回树前', 30, 598, 150, 78, 'ENTER_SCENE', { scene: 'tree' }) :
-      U.hotspot('enterDevice', '查看树根间长出的装置', 685, 414, 307, 187, 'ENTER_SCENE', { scene: 'act3_device' }) +
+        back('map') :
+      U.hotspot('enterDevice', '查看树根间长出的装置', 685, 414, 307, 187, 'OPEN_DEVICE') +
         (graft ? U.hotspot('graft', '接合第三圈年轮', 442, 211, 213, 286, 'OPEN_GRAFT', { act: 'act3' }) : '') +
         back('map');
     return U.room('act3-tree', state, {

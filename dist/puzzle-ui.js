@@ -236,6 +236,8 @@
       const wood=$('support-wood');
       if(wood&&data.phase!=='end')wood.setAttribute('transform',`translate(${900+data.dx} ${380+data.dy})`);
       if(data.phase==='end'){
+        // 文档要求「点击或拖动」都可扶稳：几乎没位移时视为点击，直接扶稳。
+        if(Math.hypot(data.dx,data.dy)<16){send({type:'USE',item:'supportWood',target:'seedling'});return;}
         const x=900+data.dx,y=380+data.dy;
         if(Math.hypot(x-700,y-380)<=120)send({type:'USE',item:'supportWood',target:'seedling'});
         else { if(wood)wood.setAttribute('transform','translate(900 380)'); toast('把支撑木拖到幼苗两侧，让它站稳。'); }
