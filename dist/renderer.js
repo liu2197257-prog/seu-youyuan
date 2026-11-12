@@ -52,7 +52,8 @@
       if (!p.lensInstalled) return hasLens ? '把特殊镜片装进相机的滤镜框。' : '树旁架着一台相机。';
       if (!s.ringAmber.owned) return '裂口里有一滴逆着重力上升的树脂。';
       if (!p.enteredMemory) return '把年轮珀贴入树干的不完整纹路。';
-      if (!p.watered || !p.supported) return '浇灌幼苗，再用支撑木把它扶稳。';
+      if (!p.watered) return '浇灌幼苗，再用支撑木把它扶稳。';
+      if (!p.supported) return '再用支撑木把幼苗扶稳。';
       return '旋转对齐幼苗脚边的印记。';
     }
     if (chapter === 'act4') {
@@ -86,9 +87,12 @@
   }
   function renderInventory() {
     const inventory = Array.isArray(state.inventory) ? state.inventory : [];
+    const viewScene = state ? PineSceneUtil.adapt(state, runtime).scene : '';
     $('inventory').innerHTML = inventory.filter(id => id !== 'amber').map(id => {
       const selected = runtime.selectedItem === id ? ' selected' : '';
-      return `<button type="button" class="item-button${selected}" data-action="SELECT_ITEM" data-item="${id}" aria-pressed="${runtime.selectedItem === id}">${itemName(id)}</button>`;
+      // 提示当前场景该用哪件东西，避免在镜片/水罐之间选错。
+      const suggested = viewScene === 'prologue_sprout' && id === 'waterCan' ? ' suggested' : '';
+      return `<button type="button" class="item-button${selected}${suggested}" data-action="SELECT_ITEM" data-item="${id}" aria-pressed="${runtime.selectedItem === id}">${itemName(id)}</button>`;
     }).join('');
     const hasAmber = !!(state.ringAmber && state.ringAmber.owned);
     $('amber-button').hidden = !hasAmber;

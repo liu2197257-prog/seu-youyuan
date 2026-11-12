@@ -369,7 +369,7 @@ test('集成 action 别名与 specialLens 输入可直接使用', () => {
   state = apply(state, { type: 'TAKE', item: 'specialLens' });
   state = apply(state, { type: 'USE_ON_TARGET', item: 'specialLens', target: 'filterFrame' });
   assert.equal(state.prologue.guardianSeen, true);
-  assert.ok(state.inventory.includes('lens'));
+  assert.ok(!state.inventory.includes('lens'), '装到相机上的镜片不应再占用物品栏');
 
   state = finishHall(finishLibrary(toAct1()));
   state = apply(state, { type: 'ENTER_SCENE', scene: 'act1_gym' });

@@ -170,8 +170,8 @@
         <g transform="translate(330 440)"><path d="M0 40Q0 0 55 0H105V125H10Z" fill="#6e6c58" stroke="#3e3b30" stroke-width="6"/><path d="M105 25Q165 20 150 75T105 90M20 15L-40-20" fill="none" stroke="#454336" stroke-width="10"/></g>
         <g id="support-wood" data-drag="support" class="draggable" transform="translate(900 380)"><path d="M0 170V65M0 80L-65 10M0 80L65 10" fill="none" stroke="#5d4932" stroke-width="18" stroke-linecap="round"/></g>
         <path d="M210 530l-60 65m80-40 40 55M1040 520l70 70" stroke="#5a4936" stroke-width="10"/>`,
-      interactable: U.hotspot('wateringCan','拿起水罐',260,400,190,200,'TAKE',{ item:'wateringCan' }) +
-        U.hotspot('sprout','浇灌幼苗',550,290,210,260,'USE_ON_TARGET',{ target:'sprout' }) +
+      interactable: (!watered ? U.hotspot('wateringCan','拿起水罐',260,400,190,200,'TAKE',{ item:'wateringCan' }) : '') +
+        (!watered ? U.hotspot('sprout','浇灌幼苗',550,290,210,260,'USE_ON_TARGET',{ target:'sprout' }) : '') +
         (watered && supported ? U.hotspot('sproutMark','对齐幼苗脚边的印记',560,510,210,140,'OPEN_GRAFT',{ act:'prologue' }) : ''),
       overlay: `${watered ? '<ellipse cx="650" cy="585" rx="140" ry="35" fill="#675c48" opacity=".45"/>' : ''}${supported ? '' : U.caption('拖动 Y 形支撑木，扶稳幼苗',900,610,{size:17})}`,
       character: ''

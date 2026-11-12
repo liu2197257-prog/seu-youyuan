@@ -406,6 +406,7 @@
         next.prologue.lensInstalled = true;
         next.prologue.guardianSeen = true;
         next.prologue.treeBroken = true;
+        removeItem(next, 'lens'); // 镜片已装在相机上，不再占物品栏
       });
     }
     if (item === 'amber') {
@@ -431,6 +432,7 @@
       if (state.prologue.watered) return rejected(state, action, 'ALREADY_USED');
       return accepted(state, [{ type: 'SPROUT_WATERED' }], function (next) {
         next.prologue.watered = true;
+        removeItem(next, 'waterCan'); // 水罐归位，不再占物品栏
         updateSproutPhase(next);
       });
     }

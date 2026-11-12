@@ -261,15 +261,44 @@ async function main() {
     record('年轮珀贴入纹路并进入植松记忆', r.changed && r.scene === 'prologue_sprout');
     await shot('04-prologue-sprout');
 
-    r = await act({ type: 'TAKE', item: 'waterCan' });
-    record('拾取水罐', r.changed);
-    r = await act({ type: 'USE', item: 'waterCan', target: 'seedling' });
-    record('浇灌幼苗', r.changed);
-    r = await act({ type: 'USE', item: 'supportWood', target: 'seedling' });
-    record('扶稳幼苗', r.changed);
+    // 真实 UI 路径：拿水罐 → 选中 → 点幼苗浇灌
+    const waterUI = await cdp.eval(`(async () => {
+      const can = [...document.querySelectorAll('#scene [data-action="TAKE"]')].find(e => e.dataset.item === 'wateringCan');
+      if (!can) return { error: 'no watering can hotspot' };
+      PineGame.onAction(Object.assign({}, can.dataset));
+      await new Promise(r => setTimeout(r, 260));
+      const btn = [...document.querySelectorAll('#inventory .item-button')].find(b => b.dataset.item === 'waterCan');
+      if (!btn) return { error: 'no waterCan inventory button', inv: PineGame.state.inventory.slice() };
+      btn.click();
+      await new Promise(r => setTimeout(r, 160));
+      const selected = PineGame.runtime.selectedItem;
+      const sprout = [...document.querySelectorAll('#scene [data-action="USE_ON_TARGET"]')].find(e => e.dataset.target === 'sprout');
+      if (!sprout) return { error: 'no sprout hotspot', selected };
+      PineGame.onAction(Object.assign({}, sprout.dataset));
+      await new Promise(r => setTimeout(r, 320));
+      return { selected, watered: PineGame.state.prologue.watered, inv: PineGame.state.inventory.slice() };
+    })()`);
+    record('UI 路径：选中水罐后点幼苗可完成浇水',
+      waterUI.selected === 'waterCan' && waterUI.watered === true, JSON.stringify(waterUI));
+    record('浇完水后水罐从物品栏移除（不会误选）', !waterUI.inv.includes('waterCan'), JSON.stringify(waterUI));
+
+    // 真实指针：轻点支撑木即可扶稳（等价于拖动）
+    const supportUI = await cdp.eval(`(async () => {
+      const wood = document.getElementById('support-wood');
+      if (!wood) return { error: 'no support wood' };
+      const r = wood.getBoundingClientRect();
+      const opt = { pointerId: 21, bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+      wood.dispatchEvent(new PointerEvent('pointerdown', opt));
+      wood.dispatchEvent(new PointerEvent('pointerup', opt));
+      await new Promise(res => setTimeout(res, 380));
+      return { supported: PineGame.state.prologue.supported };
+    })()`);
+    record('UI 路径：轻点支撑木也能扶稳幼苗', supportUI.supported === true, JSON.stringify(supportUI));
+
     await settle();
-    const voice = await cdp.eval(`PineGame.state.prologue.watered && PineGame.state.prologue.supported`);
-    record('两件事都完成后才允许接合', voice === true);
+    const prologueReady = await cdp.eval(`PineGame.state.prologue`);
+    record('两件事都完成后才允许接合',
+      prologueReady.watered === true && prologueReady.supported === true);
     r = await act({ type: 'GRAFT' });
     record('序章极简接合 → 进入一九三三年', r.changed && r.era === '1933' && r.scene === 'act1_tree');
     await shot('05-act1-tree');

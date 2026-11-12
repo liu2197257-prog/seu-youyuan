@@ -123,7 +123,7 @@
     }
   }
   function rejectionText(reason) {
-    const messages = { MISSING_ITEM:'先在物品栏选中能用于这里的东西。',WRONG_TARGET:'这里装不上。',WRONG_PUZZLE_ANSWER:'机关轻轻回弹，顺序还不对。',MISSING_GEARS:'齿轮还没有装齐，手柄只能空转。',AMBER_NOT_INSERTED:'先把年轮珀嵌入中央凹槽。',DEVICE_NOT_READY:'装置还有一处没有准备好。',C1_REQUIRED:'还缺些什么。先去看看前工院。',CORE_BUILDINGS_INCOMPLETE:'还缺些什么。两栋核心建筑的记忆还没有汇合。',EVIDENCE_INCOMPLETE:'三件成果物证还没有集齐。',MALLET_REQUIRED:'先把木槌装回支架。',DRAWER_LOCKED:'抽屉还锁着。',FRAGMENT_ONE_REQUIRED:'先看看反复翻动的那本书。',MEMORY_ALIGNMENT_REQUIRED:'要先把对应记忆对入槽位。',STORY_REQUIRED:'先听完树前的那段回忆。',B3_REQUIRED:'先汇合门旁的两段线索。',CRACK_NOT_TOUCHED:'先触碰树干上的裂口。',ALREADY_IN_SCENE:'已经在这里了。',ALREADY_PROJECTED:'这件物证已经投射过了。',ALREADY_COLLECTED:'这件物证已经记录过了。',SCENE_LOCKED:'这里现在还没有回应。' };
+    const messages = { MISSING_ITEM:'先在物品栏选中能用于这里的东西。',WRONG_TARGET:'这里装不上。',WRONG_SCENE:'这里用不上这件东西。',ALREADY_USED:'这一步已经做过了。',TARGET_NOT_HERE:'这里没有这个目标。',WRONG_PUZZLE_ANSWER:'机关轻轻回弹，顺序还不对。',MISSING_GEARS:'齿轮还没有装齐，手柄只能空转。',AMBER_NOT_INSERTED:'先把年轮珀嵌入中央凹槽。',DEVICE_NOT_READY:'装置还有一处没有准备好。',C1_REQUIRED:'还缺些什么。先去看看前工院。',CORE_BUILDINGS_INCOMPLETE:'还缺些什么。两栋核心建筑的记忆还没有汇合。',EVIDENCE_INCOMPLETE:'三件成果物证还没有集齐。',MALLET_REQUIRED:'先把木槌装回支架。',DRAWER_LOCKED:'抽屉还锁着。',FRAGMENT_ONE_REQUIRED:'先看看反复翻动的那本书。',MEMORY_ALIGNMENT_REQUIRED:'要先把对应记忆对入槽位。',STORY_REQUIRED:'先听完树前的那段回忆。',B3_REQUIRED:'先汇合门旁的两段线索。',CRACK_NOT_TOUCHED:'先触碰树干上的裂口。',ALREADY_IN_SCENE:'已经在这里了。',ALREADY_PROJECTED:'这件物证已经投射过了。',ALREADY_COLLECTED:'这件物证已经记录过了。',SCENE_LOCKED:'这里现在还没有回应。' };
     return messages[reason] || '这个操作现在无法完成。';
   }
   async function playPrologueBreak() {
@@ -368,6 +368,12 @@
         let item = runtime.selectedItem || data.item;
         if (!item && /treeCrack|amberSocket/.test(target)) item = 'amber';
         if (!item) { PineRenderer.toast('先在物品栏选中要用的东西。'); return; }
+        if (target === 'seedling' && !['waterCan', 'supportWood'].includes(item)) {
+          PineRenderer.toast(item === 'lens' ? '这枚镜片要装到相机的滤镜框上。' : '这件东西不能用在幼苗上。');
+          return;
+        }
+        if (target === 'seedling' && item === 'waterCan' && state.prologue.watered) { PineRenderer.toast('幼苗已经浇过水了。'); return; }
+        if (target === 'filterFrame' && item !== 'lens') { PineRenderer.toast('滤镜框要装的是特殊镜片。'); return; }
         dispatch({ type:'USE', item, target }); break;
       }
       case 'OPEN_BAG': openBag(); break;
