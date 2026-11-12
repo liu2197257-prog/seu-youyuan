@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#29271f">
+  <title>六朝松</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game" aria-label="六朝松校史解谜游戏">
+    <section id="stage" aria-live="off">
+      <div id="scene" class="scene"></div>
+      <div class="paper-grain" aria-hidden="true"></div>
+
+      <header id="topbar" class="hud">
+        <div id="era-label" class="era-label">当代</div>
+        <div class="top-actions">
+          <button id="archive-button" class="icon-button" type="button" aria-label="查看档案" title="档案">档</button>
+          <button id="audio-button" class="icon-button" type="button" aria-label="开启声音" aria-pressed="false" title="声音默认关闭">静</button>
+          <button id="restart-button" class="icon-button" type="button" aria-label="从头开始" title="从头开始">↻</button>
+        </div>
+      </header>
+
+      <div id="objective" class="objective hud" aria-live="polite"></div>
+      <div id="nearby" class="nearby hud" hidden></div>
+
+      <div id="joystick" class="joystick hud" aria-label="虚拟摇杆">
+        <div class="joystick-ring"></div>
+        <div id="joystick-knob" class="joystick-knob"></div>
+      </div>
+      <button id="interact-button" class="interact-button hud" type="button" hidden>查看</button>
+
+      <button id="amber-button" class="amber-button hud" type="button" aria-label="查看年轮珀与提示" hidden>
+        <span class="amber-mini" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>年轮珀</span>
+      </button>
+      <div id="inventory" class="inventory hud" aria-label="物品栏"></div>
+
+      <div id="dialogue" class="dialogue hud" role="dialog" aria-live="polite" hidden>
+        <div id="dialogue-speaker" class="dialogue-speaker"></div>
+        <div id="dialogue-text" class="dialogue-text"></div>
+        <button id="dialogue-next" type="button" aria-label="继续">继续</button>
+      </div>
+      <div id="toast" class="toast hud" role="status" hidden></div>
+
+      <div id="modal-backdrop" class="modal-backdrop hud" hidden>
+        <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <header class="modal-header">
+            <h2 id="modal-title"></h2>
+            <button id="modal-close" class="icon-button" type="button" aria-label="关闭">×</button>
+          </header>
+          <div id="modal-body" class="modal-body"></div>
+        </section>
+      </div>
+
+      <div id="cinematic" class="cinematic hud" hidden aria-live="polite"></div>
+      <div id="rotate-notice" class="rotate-notice">横过屏幕，故事会清楚一些。</div>
+      <div id="fatal-error" class="fatal-error" hidden></div>
+    </section>
+  </main>
+
+  <script src="content.js"></script>
+  <script src="puzzles.js"></script>
+  <script src="state.js"></script>
+  <script src="art.js"></script>
+  <script src="scenes/prologue.js"></script>
+  <script src="scenes/act1.js"></script>
+  <script src="scenes/act2.js"></script>
+  <script src="scenes/act3.js"></script>
+  <script src="scenes/act4.js"></script>
+  <script src="scenes/epilogue.js"></script>
+  <script src="renderer.js"></script>
+  <script src="input.js"></script>
+  <script src="audio.js"></script>
+  <script src="puzzle-ui.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

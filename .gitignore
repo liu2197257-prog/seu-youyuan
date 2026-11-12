@@ -1,0 +1,6 @@
+# 测试产物与本地临时文件不入库
+tests/screenshots/
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store
