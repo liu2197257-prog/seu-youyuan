@@ -69,7 +69,40 @@ button:disabled { opacity: .42; cursor: default; }
 .cinematic-caption { position: absolute; left: 10%; right: 10%; bottom: 12%; text-align: center; font-size: clamp(17px,2.4vw,25px); line-height: 1.7; letter-spacing: .08em; }
 .era-card { font-size: clamp(28px,6vw,60px); letter-spacing: .25em; color: #d7cbb0; animation: era-reveal 5.8s both; }
 @keyframes era-reveal { 0% { opacity: 0; transform: translateY(10px); } 20%,70% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-.rotate-notice { display: none; }
+.rotate-notice {
+  display: none;
+  position: fixed;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  z-index: 60;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid #82745b;
+  border-radius: 4px;
+  background: rgba(39, 36, 29, .95);
+  color: #e3dbc7;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+@media (orientation: portrait) {
+  body:not(.force-landscape) .rotate-notice { display: block; }
+}
+body.force-landscape .rotate-notice { display: none !important; }
+
+/* 竖握兜底：把 16:9 画布整体旋转 90°，系统方向锁定也能玩。 */
+body.force-landscape #stage {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(177.7778vw, 100vh);
+  height: min(100vw, 56.25vh);
+  max-width: none;
+  max-height: none;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
+}
 .fatal-error { position: absolute; inset: 0; z-index: 99; padding: 12%; background: #e4dac3; color: #472f27; white-space: pre-wrap; }
 
 /* SVG interaction and restrained motion */
@@ -141,10 +174,6 @@ button:disabled { opacity: .42; cursor: default; }
   .nearby { bottom: 84px; }
   .modal-backdrop { padding-top: 8px; }
   .modal-header { min-height: 48px; }
-}
-@media (orientation: portrait) and (max-width: 700px) {
-  #stage { width: 100vw; height: 56.25vw; }
-  .rotate-notice { display: block; position: fixed; left: 50%; top: calc(50% + 34vw); transform: translateX(-50%); color: #cfc4aa; font-size: 14px; white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) {
   .leaf-stir, .quiet-pulse, .pine-path { animation-duration: 8s; }

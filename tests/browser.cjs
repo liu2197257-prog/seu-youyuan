@@ -566,6 +566,45 @@ async function main() {
     await cdp.send('Emulation.clearDeviceMetricsOverride');
     await sleep(150);
 
+    // ---------- portrait fallback (rotation lock) ----------
+    await cdp.eval(`PineGame.restart(); __PINE_TEST_TIMING__ = true; true`);
+    await sleep(400);
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await sleep(320);
+    const portrait = await cdp.eval(`(() => {
+      const btn = document.getElementById('rotate-button');
+      return { visible: !btn.hidden && getComputedStyle(btn).display !== 'none',
+        forced: PineGame.landscapeForced,
+        notice: btn.textContent.trim() };
+    })()`);
+    await cdp.eval(`document.getElementById('rotate-button').click()`);
+    await sleep(500);
+    const afterRotate = await cdp.eval(`(() => {
+      const stage = document.getElementById('stage').getBoundingClientRect();
+      const btn = document.getElementById('rotate-button');
+      const hot = document.querySelector('#scene [data-action="MAP_TARGET"] .hit-area');
+      let hitOk = null;
+      if (hot) {
+        const r = hot.getBoundingClientRect();
+        const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        hitOk = !!(el && (el.closest('[data-action]') || el.classList.contains('hit-area')));
+      }
+      return { forced: PineGame.landscapeForced, locked: PineGame.landscapeLocked,
+        w: Math.round(stage.width), h: Math.round(stage.height), hitOk,
+        noticeHidden: getComputedStyle(btn).display === 'none' };
+    })()`);
+    const ratioOk = (w, h) => Math.abs(w / h - 1.7778) < 0.02 || Math.abs(h / w - 1.7778) < 0.02;
+    record('竖屏时提供可点的横屏入口', portrait.visible === true && portrait.forced === false, JSON.stringify(portrait));
+    record('点击后进入横屏（方向锁定或画布旋转兜底）',
+      afterRotate.locked === true || afterRotate.forced === true, JSON.stringify(afterRotate));
+    record('横屏兜底后仍为 16:9 且热区可命中',
+      ratioOk(afterRotate.w, afterRotate.h) && afterRotate.hitOk !== false, JSON.stringify(afterRotate));
+    record('横屏兜底后隐藏提示', afterRotate.noticeHidden === true, JSON.stringify(afterRotate));
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+    await sleep(300);
+    const restored = await cdp.eval(`({ forced: PineGame.landscapeForced, cls: document.body.classList.contains('force-landscape') })`);
+    record('恢复横屏尺寸后自动退出兜底旋转', restored.forced === false && restored.cls === false, JSON.stringify(restored));
+
     // ---------- 44px hit targets ----------
     const hitCheck = await cdp.eval(`(() => {
       const stage = document.getElementById('stage').getBoundingClientRect();

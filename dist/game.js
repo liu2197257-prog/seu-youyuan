@@ -4,6 +4,7 @@
   let state, runtime = { player: { x: 640, y: 620 }, move: { x: 0, y: 0 }, nearby: null, selectedItem: null, prologueMode: 'camera', letterCamera: false };
   let lastFrame = 0, lastNearCheck = 0, lastStep = 0, noteAttempt = [], hintLevels = {};
   let started = false;
+  let orientationLocked = false, forceLandscape = false, forceRequested = false;
 
   const $ = id => document.getElementById(id);
   function chapter() { return PineSceneUtil.chapter(state); }
@@ -408,6 +409,65 @@
     else PineRenderer.toast('这里的机关还没有响应。');
   }
   function onDrag(data) { if (global.PinePuzzleUI) PinePuzzleUI.drag(data,{state:viewState(),runtime,dispatch,showDocument,visualFourNotes}); }
+  /* 横屏：先尝试全屏 + 方向锁定；手机禁用旋转或不支持时，整体旋转画布兜底。 */
+  function isPortrait() {
+    if (window.matchMedia) return window.matchMedia('(orientation: portrait)').matches;
+    return window.innerHeight > window.innerWidth;
+  }
+  function applyLandscape() {
+    const portrait = isPortrait();
+    // 只在玩家主动点过按钮后才旋转兜底，避免一进入就出现歪着的画面。
+    const shouldForce = portrait && !orientationLocked && forceRequested;
+    if (shouldForce !== forceLandscape) {
+      forceLandscape = shouldForce;
+      document.body.classList.toggle('force-landscape', shouldForce);
+    }
+    const button = $('rotate-button');
+    button.hidden = !portrait || orientationLocked || forceRequested;
+  }
+  async function requestLandscape() {
+    const targets = [$('stage'), document.documentElement].filter(el => el && el.requestFullscreen);
+    for (const element of targets) {
+      try { await element.requestFullscreen({ navigationUI: 'hide' }); break; } catch (_) { /* 继续尝试下一个 */ }
+    }
+    try {
+      if (window.screen && screen.orientation && typeof screen.orientation.lock === 'function') {
+        await screen.orientation.lock('landscape');
+        orientationLocked = true;
+      }
+    } catch (_) {
+      orientationLocked = false; // iOS 或旋转锁定：走画布旋转兜底
+    }
+    applyLandscape();
+    return orientationLocked;
+  }
+  function setupOrientation() {
+    const onChange = () => {
+      if (!isPortrait()) { orientationLocked = false; forceRequested = false; }
+      applyLandscape();
+    };
+    window.addEventListener('resize', onChange);
+    window.addEventListener('orientationchange', () => setTimeout(onChange, 120));
+    document.addEventListener('fullscreenchange', () => {
+      // 退出全屏后方向锁定随之失效，需要回到可再次触发的状态。
+      if (!document.fullscreenElement) { orientationLocked = false; forceRequested = false; }
+      applyLandscape();
+    });
+    if (window.screen && screen.orientation && screen.orientation.addEventListener) {
+      screen.orientation.addEventListener('change', onChange);
+    }
+    $('rotate-button').addEventListener('click', async () => {
+      forceRequested = true;
+      await requestLandscape();
+      if (!orientationLocked) {
+        forceRequested = true;
+        applyLandscape();
+        PineRenderer.toast('把手机横过来，画面已转正。', 3200);
+      }
+    });
+    applyLandscape();
+  }
+
   function init() {
     if (started) return; started = true;
     try {
@@ -419,8 +479,10 @@
       $('restart-button').addEventListener('click',restartConfirm);
       $('audio-button').addEventListener('click',async () => { const enabled = await PineAudio.toggle(); $('audio-button').textContent = enabled ? '声' : '静'; $('audio-button').setAttribute('aria-pressed',String(enabled)); $('audio-button').setAttribute('aria-label',enabled?'关闭声音':'开启声音'); if(enabled) PineAudio.play('wind'); });
       state = PineState.createInitialState(); PineRenderer.render(state,runtime); processIntro();
+      setupOrientation();
       requestAnimationFrame(frame);
-      global.PineGame = { dispatch, get state(){return state;}, get runtime(){return runtime;}, openAmber, restart, onAction, visualFourNotes };
+      global.PineGame = { dispatch, get state(){return state;}, get runtime(){return runtime;}, openAmber, restart, onAction, visualFourNotes,
+        requestLandscape, get landscapeLocked(){return orientationLocked;}, get landscapeForced(){return forceLandscape;} };
     } catch (error) {
       console.error(error); $('fatal-error').hidden = false;
       $('fatal-error').textContent = '游戏启动时出现问题。\n' + (error && error.message ? error.message : String(error));
