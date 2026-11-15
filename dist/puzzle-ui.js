@@ -163,7 +163,7 @@
         <path d="M470 540Q420 350 480 0H580Q530 250 590 540Z" fill="#594a36" stroke="#241f19" stroke-width="10"/><path d="M520 450Q470 300 535 90" fill="none" stroke="#211d17" stroke-width="14"/>
         <g transform="translate(520 280) rotate(${target})" opacity=".65"><path d="M0-130V-90M0 90V130M-130 0H-90M90 0H130" stroke="#b39a61" stroke-width="8"/></g>
         <g id="graft-ring" data-drag="graft" class="draggable" transform="translate(520 280)"><circle r="115" fill="#6d5335" stroke="#9d814f" stroke-width="6"/><g class="ring-turn" transform="rotate(${local.graftAngle})"><circle r="88" fill="none" stroke="#c0a064" stroke-width="5" stroke-dasharray="130 20"/><path d="M0-88V-55" stroke="#d0b476" stroke-width="9"/></g><circle r="58" fill="none" stroke="#9d814f" stroke-width="4"/><circle r="29" fill="#302920"/></g></svg>
-      <div class="control-row"><button class="paper-button rotate-graft" data-delta="-10">−10°</button><span>${local.graftAngle}°</span><button class="paper-button rotate-graft" data-delta="10">＋10°</button></div><p id="puzzle-status" class="puzzle-status"></p>`, 'GRAFT');
+      <div class="control-row"><button class="paper-button rotate-graft" data-delta="-90">−90°</button><button class="paper-button rotate-graft" data-delta="-10">−10°</button><span>${local.graftAngle}°</span><button class="paper-button rotate-graft" data-delta="10">＋10°</button><button class="paper-button rotate-graft" data-delta="90">＋90°</button></div><p id="puzzle-status" class="puzzle-status">也可以直接拖动圆环。</p>`, 'GRAFT');
     bind('.rotate-graft','click',el=>{local.graftAngle=(local.graftAngle+Number(el.dataset.delta)+360)%360;openGraft({act});checkGraft(act,target);});
   }
   function checkGraft(act,target) {
