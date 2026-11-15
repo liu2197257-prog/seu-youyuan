@@ -5,6 +5,7 @@
   let lastFrame = 0, lastNearCheck = 0, lastStep = 0, noteAttempt = [], hintLevels = {};
   let started = false;
   let orientationLocked = false, forceLandscape = false, forceRequested = false;
+  const visitedScenes = new Set(); // 仅用于档案回顾，不进入剧情状态
 
   const $ = id => document.getElementById(id);
   function chapter() { return PineSceneUtil.chapter(state); }
@@ -37,6 +38,7 @@
     try { result = normalizeResult(PineState.transition(state, action)); }
     catch (error) { console.error(error); PineRenderer.toast('这个操作现在无法完成。'); return { state, effects: [], accepted: false, error }; }
     state = result.state || previous;
+    visitedScenes.add(state.scene);
     const changedScene = previous.scene !== state.scene || previous.era !== state.era;
     if (changedScene) {
       PineRenderer.beginScene(); runtime.nearby = null; noteAttempt = []; runtime.selectedItem = null; runtime.letterCamera = false;
@@ -257,9 +259,11 @@
       ${hint && level < 3 ? `<div class="hint-actions"><button class="paper-button" data-action="REVEAL_HINT" data-id="${puzzle}" data-level="${level+1}">${level ? '再看一层' : '听它怎么说'}</button></div>` : ''}`);
   }
   function openArchives() {
-    const visited = state.visitedScenes || state.visited || [];
-    const entries = Object.entries(PineContent.archives).filter(([,entry]) => visited.includes(entry.unlock) || entry.unlock === state.scene || entry.unlock === state.phase);
-    const html = entries.length ? `<div class="archive-list">${entries.map(([id,a]) => `<article class="archive-entry"><h3>${PineSceneUtil.esc(a.title)}</h3>${a.sections.map(s => `<p><strong>${PineSceneUtil.esc(s.title)}</strong><br>${s.lines.map(PineSceneUtil.esc).join('<br>')}</p>`).join('')}</article>`).join('')}</div>` : '<p>读过的纸页与看过的建筑，会在这里留下记录。</p>';
+    const entries = Object.entries(PineContent.archives).filter(([, entry]) =>
+      visitedScenes.has(entry.unlock) || entry.unlock === state.scene || entry.unlock === state.phase);
+    const html = entries.length
+      ? `<div class="archive-list">${entries.map(([, a]) => `<article class="archive-entry"><h3>${PineSceneUtil.esc(a.title)}</h3>${a.sections.map(s => `<p><strong>${PineSceneUtil.esc(s.title)}</strong><br>${s.lines.map(PineSceneUtil.esc).join('<br>')}</p>`).join('')}</article>`).join('')}</div>`
+      : '<p>读过的纸页与看过的建筑，会在这里留下记录。</p>';
     PineRenderer.openModal('档案 · 可选查看', html);
   }
   function showDocument(id) {
@@ -310,7 +314,8 @@
   function restart() {
     PineRenderer.beginScene(); PineAudio.stopAll();
     state = PineState.createInitialState(); runtime = { player:{x:640,y:620}, move:{x:0,y:0}, nearby:null, selectedItem:null, prologueMode:'camera', letterCamera:false };
-    noteAttempt = []; hintLevels = {}; PineRenderer.render(state,runtime); updateBackButton(); processIntro();
+    noteAttempt = []; hintLevels = {}; visitedScenes.clear(); visitedScenes.add(state.scene);
+    PineRenderer.render(state,runtime); updateBackButton(); processIntro();
   }
   function processIntro() {
     const chapter = state.chapter;
@@ -406,7 +411,11 @@
   function openPuzzle(action,data) {
     data = data || {};
     if (action === 'OPEN_BLUEPRINT') {
-      if (!state.act || !state.act.steps.fragment1) { dispatch({type:'TAKE',item:'drawingFragment1'}); return; }
+      if (!state.act || !state.act.steps.fragment1) {
+        const taken = dispatch({ type: 'TAKE', item: 'drawingFragment1' });
+        if (taken.changed) { PineAudio.play('paper'); PineRenderer.toast('书页间夹着一片残缺图纸，先收起来。', 2600); }
+        return;
+      }
       if (!state.inventory.includes('drawingFragment1') || !state.inventory.includes('drawingFragment2')) { PineRenderer.toast('还缺一片图纸。抽屉里也许有。'); return; }
     }
     if (action === 'OPEN_ALUMNI_STEP' && data.step && data.step !== 'wall' && state.act && !state.act.completed.frontyard) {

@@ -1,4 +1,4 @@
-/* Act III (1988): scene rendering only. Puzzle decisions remain in state/puzzles. */
+﻿/* Act III (1988): scene rendering only. Puzzle decisions remain in state/puzzles. */
 (function (global) {
   'use strict';
 
@@ -106,7 +106,7 @@
     const hotspots = U.hotspot('projection', '投射图样并对齐旧窗影', 645, 116, 431, 354, 'OPEN_PROJECTION') +
       U.hotspot('oldWindowShadow', '查看新旧窗影', 76, 84, 403, 367, 'SHOW_DOCUMENT', { id: 'oldWindowShadow' }) +
       (aligned ? U.hotspot('nestedWindowGear', '取下新旧窗格嵌套纹齿轮', 1041, 492, 112, 112, 'TAKE', { item: 'nestedWindowGear' }) : '') +
-      back('tree');
+      back('map');
     return U.room('act3-frontyard', state, {
       midground: `<rect x="47" y="69" width="1186" height="504" fill="#bfc1a9" stroke="#494237" stroke-width="8"/>
         <path d="M48 468H1232M541 70V468M1184 70V468" stroke="#969b84" stroke-width="3"/>
@@ -206,7 +206,7 @@
       U.hotspot('projection', '把 1959 年记忆投到教案上', 965, 380, 241, 138, 'OPEN_ALUMNI_STEP', { step: 'projection' }) +
       U.hotspot('letter', '完全展开随身携带的折信', 689, 405, 270, 204, 'OPEN_ALUMNI_STEP', { step: 'letter' }) +
       (letterOpen ? U.hotspot('signatureGear', '取下签名刻痕纹齿轮', 1081, 522, 105, 105, 'TAKE', { item: 'signatureGear' }) : '') +
-      back('tree');
+      back('map');
 
     // Step visibility is presentation only; PineState remains the sole gatekeeper.
     const stepRoster = rosterFound || !wallSeen;

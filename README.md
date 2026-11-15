@@ -68,6 +68,8 @@ tests/
 ```sh
 node --test                                        # 纯逻辑 + 渲染 + 约束检查
 node tests/browser.cjs                             # 真实浏览器全篇通关（需要 Edge/Chrome）
+node tests/play_ui.cjs                             # 玩家视角全程操作（只点热区/按钮/键盘/拖拽）
+node tests/play_ui_extra.cjs                       # 档案、年轮珀提示、声音、重开的回归
 python tests/visual_check.py                       # 截图的客观视觉检查（需要 Pillow）
 ```
 
