@@ -261,6 +261,18 @@ async function main() {
     record('年轮珀贴入纹路并进入植松记忆', r.changed && r.scene === 'prologue_sprout');
     await shot('04-prologue-sprout');
 
+    // 幼苗倾斜时，茎和两片叶必须一起转；否则叶片会脱离茎（真实玩家反馈的「树苗没对齐」）
+    const tilt = await cdp.eval(`(() => {
+      const g = [...document.querySelectorAll('#scene g[transform]')].find(e => /rotate\\(-9/.test(e.getAttribute('transform')));
+      if (!g) return { transform: null };
+      const paths = [...g.querySelectorAll('path')];
+      return { transform: g.getAttribute('transform'), pathCount: paths.length,
+        stem: paths.some(p => p.getAttribute('stroke') === '#504531'),
+        leaves: paths.some(p => p.getAttribute('fill') === '#73765a') };
+    })()`);
+    record('幼苗倾斜时茎与叶在同一个旋转组里（不会错位）',
+      tilt.stem === true && tilt.leaves === true && /rotate\(-9/.test(tilt.transform || ''), JSON.stringify(tilt));
+
     // 真实 UI 路径：拿水罐 → 选中 → 点幼苗浇灌
     const waterUI = await cdp.eval(`(async () => {
       const can = [...document.querySelectorAll('#scene [data-action="TAKE"]')].find(e => e.dataset.item === 'wateringCan');
@@ -294,6 +306,18 @@ async function main() {
       return { supported: PineGame.state.prologue.supported };
     })()`);
     record('UI 路径：轻点支撑木也能扶稳幼苗', supportUI.supported === true, JSON.stringify(supportUI));
+
+    // 扶稳后：支撑木必须立在幼苗基部，而不是弹回右侧原位；幼苗同时转正。
+    const staked = await cdp.eval(`(() => {
+      const wood = document.getElementById('support-wood');
+      const plant = [...document.querySelectorAll('#scene g[transform]')].find(e => /rotate\\(0 0 210/.test(e.getAttribute('transform')));
+      return { wood: wood && wood.getAttribute('transform'),
+        draggable: wood ? wood.hasAttribute('data-drag') : null,
+        plantTransform: plant && plant.getAttribute('transform') };
+    })()`);
+    record('扶稳后支撑木立在幼苗旁（不再弹回右侧原位）',
+      staked.wood === 'translate(655 490)' && staked.draggable === false, JSON.stringify(staked));
+    record('扶稳后幼苗整株转正', /rotate\(0 0 210/.test(staked.plantTransform || ''), JSON.stringify(staked));
 
     await settle();
     const prologueReady = await cdp.eval(`PineGame.state.prologue`);

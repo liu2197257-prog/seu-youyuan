@@ -163,12 +163,18 @@
   function sprout(state) {
     const watered = U.flag(state,['sproutWatered','watered']);
     const supported = U.flag(state,['sproutSupported','supported']);
+    // 幼苗：倾斜时整株（茎+叶）绕根部一起转，扶稳后转正。只弯茎会让叶片和茎错开。
+    const plant = `<g transform="translate(655 360) rotate(${supported ? 0 : -9} 0 210)"><path d="M0 210V0" fill="none" stroke="#504531" stroke-width="12"/><path d="M0 45Q-80 0-95 55Q-45 90 0 65M0 80Q70 30 90 90Q45 120 0 100" fill="#73765a" stroke="#414532" stroke-width="5"/></g>`;
+    // 支撑木：未扶稳时躺在右侧待拖动；扶稳后立到幼苗基部两侧、画在幼苗之后，不再是可拖物体。
+    const stake = supported
+      ? `<g id="support-wood" transform="translate(655 490)"><path d="M0 170V65M0 80L-65 10M0 80L65 10" fill="none" stroke="#5d4932" stroke-width="18" stroke-linecap="round"/></g>`
+      : `<g id="support-wood" data-drag="support" class="draggable" transform="translate(900 380)"><path d="M0 170V65M0 80L-65 10M0 80L65 10" fill="none" stroke="#5d4932" stroke-width="18" stroke-linecap="round"/></g>`;
     return U.room('prologue-sprout', state, {
       midground: `<rect width="1280" height="720" fill="#cfc4a9"/><path d="M0 390Q300 350 600 410T1280 370V720H0Z" fill="#9e8a68"/>
         <path d="M0 455Q290 410 520 470M760 450Q1000 390 1280 450" stroke="#715e45" stroke-width="5" fill="none"/>
-        <g transform="translate(655 360)"><path d="M0 210Q${supported?0:-45} 100 0 0" fill="none" stroke="#504531" stroke-width="12"/><path d="M0 45Q-80 0-95 55Q-45 90 0 65M0 80Q70 30 90 90Q45 120 0 100" fill="#73765a" stroke="#414532" stroke-width="5"/></g>
+        ${supported ? stake : ''}${plant}
         <g transform="translate(330 440)"><path d="M0 40Q0 0 55 0H105V125H10Z" fill="#6e6c58" stroke="#3e3b30" stroke-width="6"/><path d="M105 25Q165 20 150 75T105 90M20 15L-40-20" fill="none" stroke="#454336" stroke-width="10"/></g>
-        <g id="support-wood" data-drag="support" class="draggable" transform="translate(900 380)"><path d="M0 170V65M0 80L-65 10M0 80L65 10" fill="none" stroke="#5d4932" stroke-width="18" stroke-linecap="round"/></g>
+        ${supported ? '' : stake}
         <path d="M210 530l-60 65m80-40 40 55M1040 520l70 70" stroke="#5a4936" stroke-width="10"/>`,
       interactable: (!watered ? U.hotspot('wateringCan','拿起水罐',260,400,190,200,'TAKE',{ item:'wateringCan' }) : '') +
         (!watered ? U.hotspot('sprout','浇灌幼苗',550,290,210,260,'USE_ON_TARGET',{ target:'sprout' }) : '') +
