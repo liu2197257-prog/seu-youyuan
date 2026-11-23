@@ -36,21 +36,16 @@
     const carved = flag(state, ['act1Carved', 'ringCarved', 'deviceComplete']) || (amber.rings || 0) > 0;
     const grafted = flag(state, ['act1Grafted', 'firstGrafted']) || (amber.grafted || 0) > 0;
     const pine = PineArt.pine({ status: 'restoring', grafted: grafted ? Math.max(1, amber.grafted || 0) : 0 }, {
-      x: 630, y: 360, scale: 1.58, era: 'act1', vivid: false
+      x: 630, y: 356, scale: 1.52, era: 'act1', vivid: false
     });
     const outlines = `<g class="memory-figure" opacity=".25" stroke-dasharray="8 7">
       ${PineArt.building('library', { x: 190, y: 230, scale: .42, era: 'act1' }) || ''}
       ${PineArt.building('hall', { x: 1080, y: 205, scale: .42, era: 'act1' }) || ''}
       ${PineArt.building('gym', { x: 1080, y: 505, scale: .38, era: 'act1' }) || ''}
     </g>`;
-    const newLeaves = grafted ? `<g class="leaf-stir" fill="#73765b" stroke="${ink}" stroke-width="3">
-      <path d="M480 170Q430 125 404 164Q437 196 480 170Z"/><path d="M489 165Q514 111 548 139Q535 176 489 165Z"/>
-      <path d="M467 180Q418 188 431 222Q469 216 467 180Z"/></g>` : '';
     return U.room('act1-tree', state, {
-      midground: outlines + pine + newLeaves +
-        `<path d="M606 192Q565 320 611 510" fill="none" stroke="#251f19" stroke-width="16"/>
-         ${grafted ? '<path d="M598 332Q582 364 595 391" fill="none" stroke="#80613c" stroke-width="10"/>' : ''}
-         <path d="M75 555Q305 526 480 566M770 565Q990 526 1210 557" fill="none" stroke="#71644d" stroke-width="5"/>`,
+      backdrop: 'pine-court-1',
+      midground: outlines + pine,
       interactable:
         U.hotspot('treeLibrary', '前往孟芳图书馆', 95, 140, 190, 175, 'ENTER_SCENE', { scene: 'library' }) +
         U.hotspot('treeHall', '前往大礼堂', 985, 115, 190, 175, 'ENTER_SCENE', { scene: 'hall' }) +
@@ -60,7 +55,7 @@
       overlay: `<g pointer-events="none">${carved ? '<g fill="none" stroke="#9a8154" stroke-width="4" opacity=".75"><path d="M560 360h38m-19-19v38"/><path d="M655 410q25-20 45 0t45 0"/></g>' : ''}
         ${U.caption('孟芳图书馆', 190, 330, { size: 17 })}${U.caption('大礼堂', 1080, 310, { size: 17 })}${U.caption('体育馆', 1080, 610, { size: 17 })}</g>`,
       character: `<g pointer-events="none">${PineArt.keeper({
-        x: 865, y: 385, scale: 1.08, era: 'act1',
+        x: 865, y: 453, scale: 1.08, era: 'act1',
         pose: carved && !grafted ? 'reach' : 'stand', className: 'memory-figure quiet-pulse'
       })}</g>`
     });

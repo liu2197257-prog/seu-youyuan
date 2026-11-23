@@ -330,46 +330,33 @@
     const showDevice = device || graft;
     const keeper = showDevice ? '' : PineArt.keeper({
       x: account ? 810 : 1080,
-      y: account ? 405 : 383,
+      y: account ? 460 : 502,
       scale: account ? 1.08 : .82,
+      fading: true,
       pose: account ? 'reach' : 'lowered',
       className: account ? 'quiet-pulse' : ''
     });
-    const pine = PineArt.pine(state.amber || {}, {
+    const pine = PineArt.pine({ status: 'restoring', grafted: grafted ? 3 : 2 }, {
       x: showDevice ? 383 : 553,
-      y: 360,
+      y: 353,
       scale: showDevice ? 1.38 : 1.5,
-      era: 'act3',
-      broken: false,
-      vivid: false,
-      rings: grafted ? 3 : 2
+      era: 'act3'
     });
     const memory = account ? selfAccountMemory(state, phase) : '';
     const hotspots = showDevice ?
       U.hotspot('rootDevice', '对入两段记忆并刻第三圈', 633, 241, 421, 353, 'OPEN_DEVICE') +
         U.hotspot('graft', '接合第三圈年轮', 287, 209, 202, 291, 'OPEN_GRAFT', { act: 'act3' }) +
         back('map') :
-      U.hotspot('enterDevice', '查看树根间长出的装置', 685, 414, 307, 187, 'OPEN_DEVICE') +
+      U.hotspot('enterDevice', '查看树根间长出的装置', 685, 454, 307, 195, 'OPEN_DEVICE') +
         (graft ? U.hotspot('graft', '接合第三圈年轮', 442, 211, 213, 286, 'OPEN_GRAFT', { act: 'act3' }) : '') +
         back('map');
     return U.room('act3-tree', state, {
-      midground: `<rect width="1280" height="560" fill="#bdc0a3"/>
-        <path d="M0 450Q323 417 640 457T1280 439V720H0Z" fill="#899273"/>
-        <path d="M0 552Q310 506 637 548T1280 518" fill="none" stroke="#687357" stroke-width="5"/>
-        <g opacity=".36" fill="#78836d" stroke="#515e50" stroke-width="5">
-          <path d="M52 376V189L161 137L270 189V376Z"/><path d="M1032 378V186L1134 131L1234 186V378Z"/>
-          <path d="M87 230H235M1066 224H1202" stroke="#b6b99b" stroke-width="5"/>
-        </g>
-        ${pine}
-        <path id="remaining-crack" d="M551 169Q517 284 550 365T536 528" fill="none" stroke="#28271f" stroke-width="15" stroke-linecap="round"/>
-        <g id="act3-new-branches" fill="none" stroke="#5a654b" stroke-width="13" stroke-linecap="round">
-          <path d="M514 214Q392 154 305 84M587 188Q709 120 805 63M542 146Q515 88 496 39"/>
-        </g>
-        <g fill="#77825e" opacity=".88">
-          <path d="M304 85l-45-28l19 45l-42 7l48 18Z"/><path d="M807 64l36-37l-9 48l45-3l-43 29Z"/><path d="M496 41l-20-42l40 26l17-42l8 52Z"/>
-        </g>
-        ${showDevice ? rootDevice(state) : `<g id="device-between-roots" opacity=".8">
+      backdrop: 'pine-court-3',
+      midground: `${pine}
+        ${showDevice ? rootDevice(state) : `<g id="device-between-roots" transform="translate(0 47)" opacity=".85">
+          <ellipse cx="841" cy="596" rx="156" ry="18" fill="#514a36" opacity=".2"/>
           <path d="M694 582Q748 486 825 501Q910 472 987 579" fill="none" stroke="#514a36" stroke-width="21"/>
+          <path d="M694 582L673 604M987 579L998 603" fill="none" stroke="#514a36" stroke-width="12" stroke-linecap="round"/>
           <circle cx="790" cy="528" r="43" fill="#747b5e" stroke="#424936" stroke-width="7"/>
           <circle cx="895" cy="526" r="43" fill="#747b5e" stroke="#424936" stroke-width="7"/>
           <path d="M763 528H817M790 501V555M868 526H922M895 499V553" stroke="#b0a078" stroke-width="5"/>

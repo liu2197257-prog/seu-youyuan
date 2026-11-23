@@ -153,6 +153,11 @@ body.force-landscape #stage {
 .paper-button.secondary { background: transparent; color: #463a2c; }
 .paper-button:disabled { opacity: .38; }
 .document-paper { max-width: 580px; margin: 0 auto; padding: 26px; border: 1px solid #a18c68; background: #ddd0af; line-height: 2; box-shadow: 4px 5px 0 rgba(71,55,37,.12); white-space: pre-wrap; }
+.document-art { display: block; width: min(100%, 470px); max-height: 42vh; object-fit: contain; margin: 0 auto 14px; }
+.document-art-pocket { width: min(100%, 260px); }
+.camera-bag-inspection { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: clamp(10px, 3vw, 28px); max-width: 580px; margin: auto; }
+.camera-bag-art { display: block; width: 100%; height: clamp(108px, 38vh, 285px); }
+.camera-bag-actions { display: grid; gap: 10px; }
 .document-paper .fold { border-top: 1px dashed #9d8967; margin: 20px 0; }
 .puzzle-instruction { margin: 0 0 12px; line-height: 1.6; color: #5a4b3a; }
 .puzzle-status { min-height: 28px; margin-top: 10px; color: #67533a; }

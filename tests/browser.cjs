@@ -77,7 +77,7 @@ async function main() {
   const child = spawn(EDGE, [
     '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`,
     '--disable-gpu', '--no-first-run', '--no-default-browser-check',
-    '--allow-file-access-from-files', '--window-size=1280,720',
+    '--window-size=1280,720',
     '--autoplay-policy=no-user-gesture-required', 'about:blank'
   ], { stdio: 'ignore', detached: false });
 
@@ -242,8 +242,42 @@ async function main() {
     let st = await stateOf();
     record('门槛1：未装镜片时树未断裂', (await cdp.eval(`PineGame.state.prologue.treeBroken`)) === false);
 
-    r = await act({ type: 'TAKE', item: 'lens' });
-    record('拾取特殊镜片', r.changed);
+    const openBag = () => cdp.eval(`document.querySelector('#scene [data-action="OPEN_BAG"] .hit-area')
+      .dispatchEvent(new MouseEvent('click', { bubbles: true }))`);
+    const bagContents = () => cdp.eval(`(() => {
+      const lens = document.querySelector('#modal-body .camera-bag-lens');
+      const letter = document.querySelector('#modal-body .camera-bag-letter');
+      const visibleButtons = [...document.querySelectorAll('.camera-bag-actions button')].every(button => {
+        const rect = button.getBoundingClientRect();
+        const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+        return rect.height >= 44 && button.contains(document.elementFromPoint(x, y));
+      });
+      return { lens: !!lens, letter: !!letter, visibleButtons };
+    })()`);
+    await openBag();
+    await sleep(180);
+    const filledBag = await bagContents();
+    record('打开相机包可见主仓镜片和夹层折信',
+      filledBag.lens && filledBag.letter && filledBag.visibleButtons, JSON.stringify(filledBag));
+    await shot('01a-prologue-bag');
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width: 667, height: 375, deviceScaleFactor: 1, mobile: true });
+    await sleep(220);
+    record('手机横屏无需滚动即可点击相机包操作', (await bagContents()).visibleButtons);
+    await shot('01b-prologue-bag-mobile');
+    await cdp.send('Emulation.clearDeviceMetricsOverride');
+    await cdp.eval(`document.querySelector('.camera-bag-actions [data-id="letterFront"]').click()`);
+    const pocket = await cdp.eval(`!!document.querySelector('.document-art-pocket image[href="assets/bag-open.webp"]') &&
+      !!document.querySelector('.document-art-pocket .camera-bag-letter')`);
+    record('折信近景使用同一个相机包夹层', pocket);
+    await cdp.eval(`document.getElementById('modal-close').click()`);
+    await openBag();
+    await cdp.eval(`document.querySelector('.camera-bag-actions [data-item="specialLens"]').click()`);
+    record('从相机包拾取特殊镜片', (await cdp.eval(`PineGame.state.inventory.includes('lens')`)));
+    await openBag();
+    const emptyBag = await bagContents();
+    record('取出镜片后主仓不再显示镜片，折信仍在',
+      !emptyBag.lens && emptyBag.letter && emptyBag.visibleButtons, JSON.stringify(emptyBag));
+    await cdp.eval(`document.getElementById('modal-close').click()`);
     r = await act({ type: 'USE', item: 'lens', target: 'filterFrame' });
     record('装入滤镜框后出现守忆者并触发断裂', r.changed);
     await settle();
@@ -261,17 +295,14 @@ async function main() {
     record('年轮珀贴入纹路并进入植松记忆', r.changed && r.scene === 'prologue_sprout');
     await shot('04-prologue-sprout');
 
-    // 幼苗倾斜时，茎和两片叶必须一起转；否则叶片会脱离茎（真实玩家反馈的「树苗没对齐」）
+    // 未扶稳时，茎叶作为一张贴图连在一起绕根部倾斜。
     const tilt = await cdp.eval(`(() => {
-      const g = [...document.querySelectorAll('#scene g[transform]')].find(e => /rotate\\(-9/.test(e.getAttribute('transform')));
-      if (!g) return { transform: null };
-      const paths = [...g.querySelectorAll('path')];
-      return { transform: g.getAttribute('transform'), pathCount: paths.length,
-        stem: paths.some(p => p.getAttribute('stroke') === '#504531'),
-        leaves: paths.some(p => p.getAttribute('fill') === '#73765a') };
+      const plant = document.querySelector('#scene .art-sprout');
+      return { transform: plant?.getAttribute('transform'),
+        artwork: plant?.querySelector('image')?.getAttribute('href') };
     })()`);
-    record('幼苗倾斜时茎与叶在同一个旋转组里（不会错位）',
-      tilt.stem === true && tilt.leaves === true && /rotate\(-9/.test(tilt.transform || ''), JSON.stringify(tilt));
+    record('幼苗倾斜时茎叶整体转动',
+      tilt.artwork === 'assets/seedling.webp' && /rotate\(-9/.test(tilt.transform || ''), JSON.stringify(tilt));
 
     // 真实 UI 路径：拿水罐 → 选中 → 点幼苗浇灌
     const waterUI = await cdp.eval(`(async () => {
@@ -294,30 +325,35 @@ async function main() {
       waterUI.selected === 'waterCan' && waterUI.watered === true, JSON.stringify(waterUI));
     record('浇完水后水罐从物品栏移除（不会误选）', !waterUI.inv.includes('waterCan'), JSON.stringify(waterUI));
 
-    // 真实指针：轻点支撑木即可扶稳（等价于拖动）
+    // 把地上的支撑木拖到幼苗根部。
     const supportUI = await cdp.eval(`(async () => {
       const wood = document.getElementById('support-wood');
       if (!wood) return { error: 'no support wood' };
       const r = wood.getBoundingClientRect();
       const opt = { pointerId: 21, bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+      const stage = document.getElementById('stage').getBoundingClientRect();
+      const end = { ...opt, clientX: stage.left + 655 * stage.width / 1280, clientY: stage.top + 530 * stage.height / 720 };
       wood.dispatchEvent(new PointerEvent('pointerdown', opt));
-      wood.dispatchEvent(new PointerEvent('pointerup', opt));
+      wood.dispatchEvent(new PointerEvent('pointermove', end));
+      wood.dispatchEvent(new PointerEvent('pointerup', end));
       await new Promise(res => setTimeout(res, 380));
       return { supported: PineGame.state.prologue.supported };
     })()`);
-    record('UI 路径：轻点支撑木也能扶稳幼苗', supportUI.supported === true, JSON.stringify(supportUI));
+    record('UI 路径：从地面拖动支撑木可以扶稳幼苗', supportUI.supported === true, JSON.stringify(supportUI));
 
-    // 扶稳后：支撑木必须立在幼苗基部，而不是弹回右侧原位；幼苗同时转正。
+    // 扶稳后，立起的支撑木和幼苗一起显示，原位置的拖动目标消失。
     const staked = await cdp.eval(`(() => {
-      const wood = document.getElementById('support-wood');
-      const plant = [...document.querySelectorAll('#scene g[transform]')].find(e => /rotate\\(0 0 210/.test(e.getAttribute('transform')));
-      return { wood: wood && wood.getAttribute('transform'),
-        draggable: wood ? wood.hasAttribute('data-drag') : null,
-        plantTransform: plant && plant.getAttribute('transform') };
+      const plant = document.querySelector('#scene .art-sprout');
+      return { draggable: !!document.querySelector('#scene [data-drag="support"]'),
+        stake: document.querySelector('#scene .is-planted image')?.getAttribute('href'),
+        artwork: plant?.querySelector('image')?.getAttribute('href'),
+        plantTransform: plant?.getAttribute('transform') };
     })()`);
-    record('扶稳后支撑木立在幼苗旁（不再弹回右侧原位）',
-      staked.wood === 'translate(655 490)' && staked.draggable === false, JSON.stringify(staked));
-    record('扶稳后幼苗整株转正', /rotate\(0 0 210/.test(staked.plantTransform || ''), JSON.stringify(staked));
+    record('扶稳后支撑木立在幼苗旁',
+      staked.stake === 'assets/support.webp' && !staked.draggable, JSON.stringify(staked));
+    record('扶稳前后显示同一棵幼苗，扶稳后整株转正',
+      staked.artwork === tilt.artwork && Boolean(staked.plantTransform) && !/rotate/.test(staked.plantTransform), JSON.stringify(staked));
+    await shot('04a-prologue-sprout-supported');
 
     await settle();
     const prologueReady = await cdp.eval(`PineGame.state.prologue`);
@@ -817,24 +853,22 @@ async function main() {
       if (!sproutDoc.querySelector('.pine-crack')) fail.push('crack missing in sprout state');
       if (!sproutDoc.querySelector('.pine-wound-sprout')) fail.push('sprout missing in sprout state');
 
-      // 3) 守忆者无清晰五官；仅转头时才出现眼部亮点
+      // 3) 守忆者在各姿态均为无五官的中山装剪影
       const stand = parse(wrap(PineArt.keeper({ pose: 'stand' })));
       const turn = parse(wrap(PineArt.keeper({ pose: 'turn' })));
       if (stand.querySelectorAll('.keeper-turn-eye').length !== 0) fail.push('keeper has eyes while standing');
-      if (turn.querySelectorAll('.keeper-turn-eye').length !== 1) fail.push('keeper turn eye missing');
-      if (!stand.querySelector('.keeper-featureless-head')) fail.push('keeper head not featureless');
+      if (turn.querySelector('.keeper-turn-eye')) fail.push('keeper has eyes while turning');
+      if (!stand.querySelector('image.keeper-featureless-head[href="assets/keeper-stand.webp"]') ||
+          !turn.querySelector('image.keeper-featureless-head[href="assets/keeper-turn.webp"]')) fail.push('keeper pose texture missing');
 
       // 4) 唯一真正饱和的绿只出现在新芽
-      const saturated = (svg) => {
-        const m = svg.match(/#(?:24b86b|19794e|[0-3][0-9a-f]b[0-9a-f]{2}[a-f0-9]{2})/gi) || [];
-        return m.length;
-      };
+      const saturated = svg => /data-vivid="true"[^]*?saturate\\(/.test(svg);
       const mutedSprout = PineArt.sprout({ vivid: false });
       const vividSprout = PineArt.sprout({ vivid: true });
-      if (saturated(mutedSprout) !== 0) fail.push('muted sprout uses saturated green');
-      if (saturated(vividSprout) === 0) fail.push('vivid sprout lacks saturated green');
+      if (saturated(mutedSprout)) fail.push('muted sprout uses saturated green');
+      if (!saturated(vividSprout)) fail.push('vivid sprout lacks saturated green');
       const actPines = ['1933', '1959', '1988'].map(era => PineArt.pine({ status: 'restoring', grafted: 1 }, { era }));
-      if (actPines.some(svg => /#24b86b/i.test(svg))) fail.push('saturated green leaked into normal acts');
+      if (actPines.some(saturated)) fail.push('saturated green leaked into normal acts');
 
       // 5) 场景图层顺序固定
       const scene = PineArt.scene('t', { background: 'a', midground: 'b', interactable: 'c', overlay: 'd', character: 'e' }, {});
@@ -845,7 +879,7 @@ async function main() {
     })()`);
     record('年轮珀三态可辨且无白色高光', !visuals.some(f => /amber/.test(f)), visuals.filter(f => /amber/.test(f)).join(' | '));
     record('裂痕始终保留、新芽只在结局出现', !visuals.some(f => /crack|sprout appeared/.test(f)), visuals.filter(f => /crack|sprout appeared/.test(f)).join(' | '));
-    record('守忆者无清晰五官（转身才有眼部亮点）', !visuals.some(f => /keeper/.test(f)), visuals.filter(f => /keeper/.test(f)).join(' | '));
+    record('守忆者各姿态均无五官', !visuals.some(f => /keeper/.test(f)), visuals.filter(f => /keeper/.test(f)).join(' | '));
     record('唯一饱和绿只留给新芽', !visuals.some(f => /saturat|green/.test(f)), visuals.filter(f => /saturat|green/.test(f)).join(' | '));
     record('SVG 场景五层顺序固定', !visuals.some(f => /layer order/.test(f)), visuals.find(f => /layer order/.test(f)) || '');
 

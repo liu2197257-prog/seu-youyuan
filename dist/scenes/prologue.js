@@ -2,7 +2,9 @@
 (function (global) {
   'use strict';
   const scenes = global.PineScenes = global.PineScenes || {};
+  const CAMPUS_BACKDROPS = { act1: 'campus-1', act2: 'campus-2', act3: 'campus-3', act4: 'campus-4' };
   const U = global.PineSceneUtil = {
+    supportRest: { x: 900, y: 573 },
     chapter(state) {
       if (state.chapter) return state.chapter;
       return ({ prologue:'prologue', '1933':'act1', '1959':'act2', '1988':'act3', '2002':'act4', epilogue:'epilogue' })[state.era] || state.era;
@@ -73,16 +75,35 @@
       options = options || {};
       return `<text x="${x}" y="${y}" fill="${options.fill || '#493c2f'}" font-size="${options.size || 20}" text-anchor="${options.anchor || 'middle'}" font-family="SimSun, serif" ${options.extra || ''}>${U.esc(text)}</text>`;
     },
+    backdrop(name) {
+      return PineArt.sprite(name, 0, 0, 1280, 720, { 'class': 'scene-illustration', preserveAspectRatio: 'none' });
+    },
     room(id, state, content) {
       return PineArt.scene(id, {
-        background: `<rect width="1280" height="720" fill="#d8ceb6"/><path d="M0 560H1280V720H0Z" fill="#b8aa8d"/><path d="M0 560H1280" stroke="#4c3e30" stroke-width="7"/>`,
+        background: content.backdrop ? U.backdrop(content.backdrop) :
+          `<rect width="1280" height="720" fill="#d8ceb6"/><path d="M0 560H1280V720H0Z" fill="#b8aa8d"/><path d="M0 560H1280" stroke="#4c3e30" stroke-width="7"/>`,
         midground: content.midground || '', interactable: content.interactable || '', overlay: content.overlay || '', character: content.character || ''
       }, { era: state.chapter });
     },
+    cameraView(tree, lens, letter) {
+      return `<rect x="135" y="65" width="1010" height="570" rx="8" fill="#b8a98d" stroke="#392f26" stroke-width="18"/>
+        <svg x="165" y="95" width="950" height="480" viewBox="0 0 950 480" overflow="hidden">
+          ${PineArt.sprite('courtyard', 0, 0, 950, 480, { preserveAspectRatio: 'xMidYMax slice' })}
+          ${PineArt.pine(tree, { x: 490, y: 244, scale: 1.06, era: 'prologue', vivid: tree.status === 'sprout' })}
+        </svg>
+        <path d="M140 630L90 710M1140 630L1190 710M640 630V720" stroke="#3e362c" stroke-width="12"/>
+        ${PineArt.camera({ x: 267, y: 626, scale: .76, bag: false, filterInstalled: lens })}
+        ${PineArt.cameraBag({ x: 950, y: 466, scale: 1.1, open: letter, letter })}
+        ${PineArt.oldPhoto({ x: 435, y: 165, scale: 1.32, rotate: -5, pinned: true })}
+        ${lens ? '' :
+          '<circle cx="258" cy="555" r="28" fill="none" stroke="#b2a184" stroke-width="4" stroke-dasharray="5 5"/>'}`;
+    },
+    viewfinder() {
+      return `<g pointer-events="none"><rect x="165" y="95" width="950" height="480" fill="none" stroke="#eee3c7" stroke-width="3" opacity=".45"/>
+        <path d="M640 90v22M640 558v22M160 335h22M1100 335h22" stroke="#eee3c7" stroke-width="3"/></g>`;
+    },
     map(state, runtime, buildings) {
       const era = state.chapter;
-      const palettes = { prologue: ['#d8cfb8','#a89e82','#756f5a'], act1: ['#ddd5c1','#b5ad99','#676257'], act2: ['#cbc5b3','#8f9995','#776654'], act3: ['#cbc7ad','#899173','#75654d'], act4: ['#d3c8ab','#959774','#806c50'] };
-      const p = palettes[era] || palettes.prologue;
       const buildingSvg = buildings.map(b => {
         const rawScene = b.scene || b.id;
         const fullScene = era === 'prologue' ? (rawScene === 'sprout' ? 'prologue_sprout' : /camera|pine|tree/.test(rawScene) ? 'prologue_pine' : null) : (rawScene === 'museum' ? 'act4_memorial' : era + '_' + rawScene);
@@ -93,11 +114,8 @@
           ${U.hotspot(b.id, b.name, b.x - 85, b.y - 90, 170, 170, 'MAP_TARGET', { target: b.id, scene: b.scene || b.id })}</g>`;
       }).join('');
       return PineArt.scene(`${era}-map`, {
-        background: `<rect width="1280" height="720" fill="${p[0]}"/><path d="M0 570Q300 490 620 560T1280 520V720H0Z" fill="${p[1]}" opacity=".5"/>
-          <path d="M80 620Q360 510 620 390T1190 180M250 0Q380 210 620 390T1000 720" fill="none" stroke="#e5dcc5" stroke-width="82" opacity=".72"/>
-          <path d="M80 620Q360 510 620 390T1190 180M250 0Q380 210 620 390T1000 720" fill="none" stroke="#776c55" stroke-width="3" stroke-dasharray="7 14" opacity=".5"/>
-          <g fill="${p[2]}" opacity=".4">${Array.from({length:16},(_,i)=>`<circle cx="${45+(i*173)%1200}" cy="${80+(i*97)%580}" r="${14+(i%4)*4}"/>`).join('')}</g>`,
-        midground: PineArt.pine(state.amber || {}, { x: 640, y: 340, scale: .66, era, broken: era === 'prologue' && U.flag(state,['treeBroken','pineBroken']), vivid: false }) + buildingSvg,
+        background: U.backdrop(CAMPUS_BACKDROPS[era] || 'courtyard'),
+        midground: PineArt.pine(Object.assign({ status: 'restoring' }, state.amber), { x: 640, y: 340, scale: .66, era }) + buildingSvg,
         interactable: U.hotspot('pine', '六朝松', 540, 200, 200, 230, 'MAP_TARGET', { target: 'pine', scene: 'tree' }),
         overlay: `<g id="map-player" class="map-player" transform="translate(${(runtime.player||{}).x||640} ${(runtime.player||{}).y||620})"><ellipse cx="0" cy="12" rx="21" ry="8" fill="#3b3429" opacity=".2"/><circle cx="0" cy="-25" r="12" fill="#51483b"/><path d="M-16 12L-11-15Q0-23 11-15L17 12Z" fill="#665d4e" stroke="#3b3228" stroke-width="3"/></g>`,
         character: ''
@@ -110,40 +128,27 @@
     runtime = runtime || {};
     const broken = U.flag(state, ['treeBroken', 'pineBroken']);
     const player = runtime.player || { x: 640, y: 620 };
-    const distance = Math.hypot(player.x - 640, player.y - 300);
     return PineArt.scene('prologue-campus', {
-      background: `<rect width="1280" height="720" fill="#d8cfb8"/>
-        <path d="M0 570Q300 490 620 560T1280 520V720H0Z" fill="#a89e82" opacity=".5"/>
-        <path d="M80 640Q360 520 620 400T1190 190M250 0Q380 210 620 400T1000 720" fill="none" stroke="#e5dcc5" stroke-width="86" opacity=".7"/>
-        <path d="M80 640Q360 520 620 400T1190 190M250 0Q380 210 620 400T1000 720" fill="none" stroke="#776c55" stroke-width="3" stroke-dasharray="7 14" opacity=".45"/>
-        <g fill="#756f5a" opacity=".38">${Array.from({ length: 14 }, (_, i) => `<circle cx="${60 + (i * 181) % 1180}" cy="${70 + (i * 103) % 580}" r="${13 + (i % 4) * 4}"/>`).join('')}</g>`,
-      midground: PineArt.pine(state.amber || {}, { x: 640, y: 300, scale: .8, era: 'prologue', broken }) +
-        PineArt.camera({ x: 880, y: 470, scale: .5, bag: true, photo: true }) +
-        `<path d="M300 660q120-26 240 0M780 660q120-26 240 0" fill="none" stroke="#8b7f66" stroke-width="4" opacity=".5"/>`,
-      interactable: U.hotspot('pine', '六朝松', 540, 150, 210, 300, 'MAP_TARGET', { target: 'pine', scene: 'tree' }) +
+      background: U.backdrop('courtyard'),
+      midground: PineArt.pine(state.amber || {}, { x: 640, y: 446, scale: .8, era: 'prologue', broken }) +
+        PineArt.camera({ x: 880, y: 505, scale: .61, bag: true, photo: true }),
+      interactable: U.hotspot('pine', '六朝松', 530, 234, 220, 359, 'MAP_TARGET', { target: 'pine', scene: 'tree' }) +
         U.hotspot('nearbyCamera', '树旁的相机', 800, 400, 190, 190, 'MAP_TARGET', { target: 'camera', scene: 'camera' }),
-      overlay: `<g pointer-events="none">${U.caption('六朝松', 640, 480, { size: 19 })}${U.caption('树旁架着一台相机', 935, 655, { size: 16 })}</g>`,
+      overlay: `<g pointer-events="none">${U.caption('六朝松', 640, 653, { size: 19 })}${U.caption('树旁架着一台相机', 935, 655, { size: 16 })}</g>`,
       character: `<g id="map-player" class="map-player" transform="translate(${player.x} ${player.y})"><ellipse cx="0" cy="12" rx="21" ry="8" fill="#3b3429" opacity=".2"/><circle cx="0" cy="-25" r="12" fill="#51483b"/><path d="M-16 12L-11-15Q0-23 11-15L17 12Z" fill="#665d4e" stroke="#3b3228" stroke-width="3"/></g>`
     }, { era: 'prologue' });
   }
   function camera(state) {
     const lens = U.flag(state,['lensInstalled','filterInstalled']);
     const broken = U.flag(state,['treeBroken','pineBroken']);
-    const pine = PineArt.pine(state.amber || {}, { x: 655, y: 355, scale: 1.15, broken, era: 'prologue' });
-    const keeper = lens ? PineArt.keeper({ x: 840, y: 370, scale: 1.15, pose: broken ? 'lowered' : 'reach', className: broken ? '' : 'quiet-pulse' }) : '';
+    const keeper = lens ? PineArt.keeper({ x: 847, y: 408, scale: .86, pose: broken ? 'lowered' : 'reach', className: broken ? '' : 'quiet-pulse' }) : '';
     return U.room('prologue-camera', state, {
-      midground: `<rect x="135" y="65" width="1010" height="570" rx="8" fill="#cfc5ac" stroke="#392f26" stroke-width="18"/>
-        <path d="M165 95H1115V575H165Z" fill="#d9d0b9" stroke="#857558" stroke-width="4"/>${pine}
-        <path d="M140 630L90 710M1140 630L1190 710M640 630V720" stroke="#3e362c" stroke-width="12"/>
-        <g transform="translate(195 475)"><path d="M0 0h105l20 35v80H0Z" fill="#4c4437" stroke="#2f2922" stroke-width="6"/><circle cx="65" cy="57" r="30" fill="#292d27" stroke="#8a795a" stroke-width="6"/><path d="M105 12l35-15v35l-35 5" fill="#665b48"/></g>
-        <g transform="translate(980 480)"><path d="M0 30Q60-10 120 30L110 135H10Z" fill="#645844" stroke="#352e25" stroke-width="6"/><path d="M30 30Q30-15 60-15T90 30" fill="none" stroke="#3d3429" stroke-width="8"/></g>
-        <g transform="translate(350 110)"><rect width="180" height="125" fill="#b8a989" stroke="#584a38" stroke-width="5"/><path d="M20 105V35h100v70" fill="#7a705b" opacity=".55"/><circle cx="130" cy="85" r="16" fill="#484239"/></g>`,
+      midground: U.cameraView({ status: broken ? 'broken' : 'normal' }, lens, false),
       interactable: U.hotspot('cameraBag','检查相机包',930,450,190,190,'OPEN_BAG') +
         U.hotspot('oldPhoto','查看旧照片',320,85,230,180,'SHOW_PHOTO') +
         U.hotspot('filterFrame','空滤镜框',210,490,150,150,'USE_ON_TARGET',{ target:'filterFrame' }) +
         U.hotspot('backCampus','返回校园',30,606,170,86,'ENTER_SCENE',{ scene:'campus' }),
-      overlay: `<rect x="165" y="95" width="950" height="480" fill="none" stroke="#eee3c7" stroke-width="3" opacity=".45"/><path d="M640 90v22M640 558v22M160 335h22M1100 335h22" stroke="#eee3c7" stroke-width="3"/>
-        ${lens ? '<circle cx="255" cy="530" r="24" fill="#4e553b" stroke="#2f3427" stroke-width="5"/><path d="M266 508l12 9-9 7" fill="#d0c5aa"/>' : '<circle cx="255" cy="530" r="25" fill="none" stroke="#9b8d70" stroke-width="5" stroke-dasharray="5 5"/>'}
+      overlay: `${U.viewfinder()}
         ${!lens && (state.inventory || []).includes('lens') ? '<rect class="quiet-pulse" x="200" y="480" width="170" height="170" rx="10" fill="none" stroke="#c8ab6d" stroke-width="4"/>' : ''}`,
       character: keeper
     });
@@ -151,35 +156,35 @@
   function pine(state) {
     const hasAmber = U.flag(state,['amberObtained','hasAmber']) || (state.amber && state.amber.obtained) || (state.inventory||[]).includes('amber');
     return U.room('prologue-pine', state, {
-      midground: PineArt.pine(state.amber || {}, { x: 610, y: 365, scale: 1.7, broken: true, era: 'prologue' }) +
-        `<path d="M590 180Q550 310 600 490" fill="none" stroke="#251f19" stroke-width="17"/>`,
-      interactable: (!hasAmber ? `<g class="resin-rise"><path d="M615 355Q580 400 615 435Q650 400 615 355Z" fill="#80603b" stroke="#4a3928" stroke-width="5"/></g>` + U.hotspot('resin','触碰悬浮的树脂',555,330,125,135,'TAKE',{ item:'amber' }) : U.hotspot('crack','把年轮珀贴入裂口',530,225,150,280,'USE_ON_TARGET',{ target:'crack' })) +
+      backdrop: 'courtyard-close',
+      midground: PineArt.pine(state.amber || {}, { x: 610, y: 336, scale: 1.52, broken: true, era: 'prologue' }),
+      interactable: (!hasAmber ? `<g class="resin-rise"><path d="M607 352C599 374 582 391 585 407C589 432 623 433 629 407C632 391 615 371 607 352Z" fill="#947044" stroke="#4d3928" stroke-width="4"/><path d="M602 374Q587 398 597 408" fill="none" stroke="#bb9765" stroke-width="3" stroke-linecap="round"/></g>` + U.hotspot('resin','触碰悬浮的树脂',555,330,125,135,'TAKE',{ item:'amber' }) : U.hotspot('crack','把年轮珀贴入裂口',530,225,150,280,'USE_ON_TARGET',{ target:'crack' })) +
         U.hotspot('backCamera','回到取景框',40,600,160,86,'ENTER_SCENE',{ scene:'camera' }) +
         U.hotspot('backCampus','返回校园',220,600,160,86,'ENTER_SCENE',{ scene:'campus' }),
-      overlay: !hasAmber ? U.caption('树脂正逆着重力上升', 810, 390, { size: 18 }) : '',
+      overlay: '',
       character: ''
     });
   }
   function sprout(state) {
     const watered = U.flag(state,['sproutWatered','watered']);
     const supported = U.flag(state,['sproutSupported','supported']);
-    // 幼苗：倾斜时整株（茎+叶）绕根部一起转，扶稳后转正。只弯茎会让叶片和茎错开。
-    const plant = `<g transform="translate(655 360) rotate(${supported ? 0 : -9} 0 210)"><path d="M0 210V0" fill="none" stroke="#504531" stroke-width="12"/><path d="M0 45Q-80 0-95 55Q-45 90 0 65M0 80Q70 30 90 90Q45 120 0 100" fill="#73765a" stroke="#414532" stroke-width="5"/></g>`;
-    // 支撑木：未扶稳时躺在右侧待拖动；扶稳后立到幼苗基部两侧、画在幼苗之后，不再是可拖物体。
-    const stake = supported
-      ? `<g id="support-wood" transform="translate(655 490)"><path d="M0 170V65M0 80L-65 10M0 80L65 10" fill="none" stroke="#5d4932" stroke-width="18" stroke-linecap="round"/></g>`
-      : `<g id="support-wood" data-drag="support" class="draggable" transform="translate(900 380)"><path d="M0 170V65M0 80L-65 10M0 80L65 10" fill="none" stroke="#5d4932" stroke-width="18" stroke-linecap="round"/></g>`;
+    const plant = PineArt.sprout({ x: 655, y: 597, rotate: supported ? 0 : -9, seedling: true });
+    const rest = U.supportRest;
+    const stake = supported ? PineArt.supportWood({ x: 672, y: 531, rotate: -9, className: 'is-planted' }) :
+      `<g id="support-wood" data-drag="support" class="draggable" transform="translate(${rest.x} ${rest.y})">
+      <ellipse cx="8" cy="14" rx="72" ry="13" fill="#443931" opacity=".22"/>
+      ${PineArt.supportWood({ rotate: 78 })}
+      ${PineArt.hitArea(-88, -38, 176, 76, { hitId: 'support' })}
+    </g>`;
     return U.room('prologue-sprout', state, {
-      midground: `<rect width="1280" height="720" fill="#cfc4a9"/><path d="M0 390Q300 350 600 410T1280 370V720H0Z" fill="#9e8a68"/>
-        <path d="M0 455Q290 410 520 470M760 450Q1000 390 1280 450" stroke="#715e45" stroke-width="5" fill="none"/>
-        ${supported ? stake : ''}${plant}
-        <g transform="translate(330 440)"><path d="M0 40Q0 0 55 0H105V125H10Z" fill="#6e6c58" stroke="#3e3b30" stroke-width="6"/><path d="M105 25Q165 20 150 75T105 90M20 15L-40-20" fill="none" stroke="#454336" stroke-width="10"/></g>
-        ${supported ? '' : stake}
-        <path d="M210 530l-60 65m80-40 40 55M1040 520l70 70" stroke="#5a4936" stroke-width="10"/>`,
+      backdrop: 'courtyard-close',
+      midground: `<path d="M536 602Q561 584 598 590Q624 566 676 576Q725 580 768 598Q741 617 689 609Q624 624 536 602Z" fill="#62513c" opacity="${watered ? '.7' : '.38'}"/>
+        <ellipse cx="356" cy="560" rx="55" ry="9" fill="#443931" opacity=".25"/>
+        ${plant}${stake}${PineArt.wateringCan({ x: 284, y: 435 })}`,
       interactable: (!watered ? U.hotspot('wateringCan','拿起水罐',260,400,190,200,'TAKE',{ item:'wateringCan' }) : '') +
         (!watered ? U.hotspot('sprout','浇灌幼苗',550,290,210,260,'USE_ON_TARGET',{ target:'sprout' }) : '') +
         (watered && supported ? U.hotspot('sproutMark','对齐幼苗脚边的印记',560,510,210,140,'OPEN_GRAFT',{ act:'prologue' }) : ''),
-      overlay: `${watered ? '<ellipse cx="650" cy="585" rx="140" ry="35" fill="#675c48" opacity=".45"/>' : ''}${supported ? '' : U.caption('拖动 Y 形支撑木，扶稳幼苗',900,610,{size:17})}`,
+      overlay: supported ? '' : U.caption('拖动 Y 形支撑木，扶稳幼苗',900,610,{size:17}),
       character: ''
     });
   }

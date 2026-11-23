@@ -347,7 +347,7 @@
     const grafted = flag(state, ['act2Grafted', 'secondRingGrafted']) || (state.amber && state.amber.grafted >= 2);
     const keeperX = grafted ? 855 : grafting ? 825 : 925;
     const keeperPose = grafting ? 'reach' : 'lowered';
-    const keeper = PineArt.keeper({ x: keeperX, y: 405, scale: 1.06, pose: keeperPose, className: grafting ? 'ink-shiver' : 'quiet-pulse' });
+    const keeper = PineArt.keeper({ x: keeperX, y: 453, scale: 1.06, opacity: .76, pose: keeperPose, className: grafting ? 'ink-shiver' : 'quiet-pulse' });
     const identityShadow = grafting ? `<g id="young-student-in-trunk" class="memory-figure" transform="translate(619 350)" opacity=".46">
       <path d="M-45 161Q-48 57-15 36H18Q48 65 47 161Z" fill="#687370" stroke="#3e4845" stroke-width="5"/>
       <path d="M-19 28Q-24-15 4-24Q32-14 28 23L14 40H-8Z" fill="#8e8876" stroke="#47473e" stroke-width="4"/>
@@ -355,28 +355,15 @@
       <path d="M-30 70L-95 16M35 72L91 18" stroke="#687370" stroke-width="17" stroke-linecap="round"/>
       <path d="M-23 158L-38 234M27 158L42 234" stroke="#606d69" stroke-width="18"/>
     </g>` : '';
-    const treeArt = PineArt.pine(state.amber || {}, {
-      x: 600, y: 365, scale: 1.55, era: 'act2', broken: false,
-      vivid: false,
-      rings: grafted ? 2 : 1
+    const treeArt = PineArt.pine({ status: 'restoring', grafted: grafted ? 2 : 1 }, {
+      x: 600, y: 354, scale: 1.52, era: 'act2'
     });
     const hotspots = grafting && !grafted ?
       U.hotspot('graft', '接合第二圈年轮', 505, 230, 208, 276, 'OPEN_GRAFT', { act: 'act2' }) + back('map') :
       back('map');
     return U.room('act2-tree', state, {
-      midground: `<rect width="1280" height="560" fill="#b9bdaf"/>
-        <path d="M0 463Q305 422 635 462T1280 445V720H0Z" fill="#8e9683"/>
-        <path d="M0 541Q310 510 644 542T1280 521" fill="none" stroke="#6f7868" stroke-width="5"/>
-        <g opacity=".42" fill="#6c7774" stroke="#4f5b58" stroke-width="5">
-          <path d="M63 382V202L177 147L288 202V382Z"/><path d="M989 386V218L1091 164L1194 218V386Z"/>
-        </g>
-        <g fill="#b8b9a6" opacity=".52"><path d="M103 225H143V278H103ZM188 225H228V278H188ZM1034 241H1071V291H1034ZM1112 241H1149V291H1112Z"/></g>
-        ${treeArt}
-        <path id="deepened-crack" d="M599 173Q563 287 596 364T581 529" fill="none" stroke="#28251f" stroke-width="${grafting ? 17 : 11}" stroke-linecap="round"/>
-        <g id="new-act2-branches" fill="none" stroke="#5b634f" stroke-width="12" stroke-linecap="round">
-          <path d="M573 225Q462 161 387 114M642 205Q733 139 809 98"/>
-        </g>
-        <g fill="#737c60" opacity=".8"><path d="M378 115l-42-31l19 48l-44 4l49 20Z"/><path d="M810 99l38-34l-13 47l43 1l-46 25Z"/></g>`,
+      backdrop: 'pine-court-2',
+      midground: treeArt,
       interactable: hotspots,
       overlay: identityShadow + (grafting ? `<path d="M505 192Q611 133 710 201" fill="none" stroke="#9b865e" stroke-width="4" stroke-dasharray="7 9" opacity=".7"/>` :
         `<path d="M828 407L1053 327" stroke="#4a4a3e" stroke-width="9" stroke-linecap="round" opacity=".7"/>`),

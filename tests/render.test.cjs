@@ -74,6 +74,26 @@ test('每个场景都能渲染出合法 SVG 且包含五层结构', () => {
       assert.ok(svg.includes(`data-layer="${layer}"`), `${scene} missing layer ${layer}`);
     }
     assert.ok(!/undefined|NaN/.test(svg), `${scene} contains undefined/NaN`);
+    for (const [, href] of svg.matchAll(/<image\b[^>]+href="([^"]+)"/g)) {
+      assert.match(href, /^assets\/[\w-]+\.webp$/, `${scene} references a nonlocal texture`);
+      assert.ok(fs.existsSync(path.join(DIST, href)), `${scene} texture is missing: ${href}`);
+    }
+  }
+});
+
+test('树干与四支主枝跨章节固定，树冠按接合次数恢复', () => {
+  const states = [
+    [{ status: 'normal' }, 4],
+    [{ status: 'broken' }, 0],
+    ...[0, 1, 2, 3].map(grafted => [{ status: 'restoring', grafted }, grafted]),
+    [{ status: 'sprout', grafted: 3 }, 4]
+  ];
+  for (const [state, leaves] of states) {
+    const svg = S.PineArt.pine(state, { vivid: state.status === 'sprout' });
+    assert.match(svg, /href="assets\/pine-trunk\.webp" x="110" y="26" width="980" height="951"/);
+    const crowns = [...svg.matchAll(/href="assets\/pine-canopy-(\d)\.webp"/g)].map(match => +match[1]);
+    assert.deepEqual(crowns, [2, 3, 4, 1].slice(0, leaves));
+    assert.equal((svg.match(/pine-wound-sprout/g) || []).length, state.status === 'sprout' ? 1 : 0);
   }
 });
 

@@ -133,9 +133,9 @@
     const normal = PineArt.pine({status:'normal'},{x:590,y:355,scale:1.2});
     const broken = PineArt.pine({status:'broken'},{x:590,y:355,scale:1.2});
     const stand = PineArt.keeper({x:820,y:380,scale:1.2,pose:'stand'});
-    const reach = PineArt.keeper({x:820,y:380,scale:1.2,pose:'turn-reach',headTurn:true});
+    const reach = PineArt.keeper({x:820,y:380,scale:1.2,pose:'turn-reach'});
     const lowered = PineArt.keeper({x:820,y:380,scale:1.2,pose:'lowered',className:'ink-shiver'});
-    const html = `<svg viewBox="0 0 1280 720" width="100%" height="100%"><rect width="1280" height="720" fill="#d5ccb5"/><style>
+    const html = `<svg viewBox="0 0 1280 720" width="100%" height="100%">${PineSceneUtil.backdrop('courtyard')}<style>
       .p0{animation:p0 6.4s both}.p1{opacity:0;animation:p1 6.4s both}.p2{opacity:0;animation:p2 6.4s both}.tb{opacity:0;animation:tb 6.4s both}
       @keyframes p0{0%,12%{opacity:1}20%,100%{opacity:0}}@keyframes p1{0%,12%{opacity:0}20%,52%{opacity:1}62%,100%{opacity:0}}@keyframes p2{0%,55%{opacity:0}65%,78%{opacity:1}100%{opacity:.9}}@keyframes tb{0%,43%{opacity:0}47%,100%{opacity:1}}
     </style><g class="p0">${normal}${stand}</g><g class="p1">${normal}${reach}</g><g class="tb">${broken}</g><g class="p2">${lowered}</g><rect x="150" y="70" width="980" height="560" fill="none" stroke="#493d30" stroke-width="15"/></svg>`;
@@ -299,14 +299,21 @@
       doc = [titles[id] || '展陈', PineContent.archives.memorial.sections[0].lines[1]];
     }
     if (!doc) doc = ['纸页','纸页上的痕迹还留着。'];
-    PineRenderer.openModal(doc[0], `<div class="document-paper">${doc[1]}</div>`);
+    const artwork = id === 'oldPhoto' || id === 'photo'
+      ? '<img class="document-art" src="assets/old-photo.webp" alt="六朝松旁站着守忆者的旧照片">'
+      : id === 'letterFront' ? `<svg class="document-art document-art-pocket" viewBox="36 24 83 42" role="img" aria-label="相机包内侧的夹层露出半张折信">${PineArt.cameraBag({ open: true, letter: true })}</svg>` : '';
+    PineRenderer.openModal(doc[0], `<div class="document-paper">${artwork}${doc[1]}</div>`);
   }
   function openBag() {
     const hasLens = (state.inventory||[]).includes('specialLens') || (state.inventory||[]).includes('lens') || hasFlag(['lensTaken','lensInstalled']);
-    PineRenderer.openModal('相机包', `<div class="archive-list">
-      ${hasLens ? '' : '<button class="paper-button" data-action="TAKE" data-item="specialLens">取出特殊镜片</button>'}
-      <button class="paper-button secondary" data-action="SHOW_DOCUMENT" data-id="letterFront">抽出夹层里的半张折信</button>
-      <p>镜头布是干净的。包的主人没有留下名字。</p></div>`);
+    PineRenderer.openModal('相机包', `<div class="camera-bag-inspection">
+      <svg class="camera-bag-art" viewBox="9 -22 120 151" role="img" aria-label="打开的相机包${hasLens ? '' : '，镜片在主仓里'}">
+        ${PineArt.cameraBag({ open: true, lensInBag: !hasLens, letter: true })}
+      </svg>
+      <div class="camera-bag-actions">
+        ${hasLens ? '' : '<button class="paper-button" data-action="TAKE" data-item="specialLens">取出特殊镜片</button>'}
+        <button class="paper-button secondary" data-action="SHOW_DOCUMENT" data-id="letterFront">抽出夹层里的半张折信</button>
+      </div></div>`);
   }
   function restartConfirm() {
     PineRenderer.openModal('从头开始？','<p>这次走过的路不会留下存档。</p><div class="control-row"><button class="paper-button" data-action="CONFIRM_RESTART">从头开始</button><button class="paper-button secondary" data-action="CLOSE_MODAL">留在这里</button></div>');
@@ -329,9 +336,8 @@
     const ink = Array.from({ length: 34 }, (_, i) =>
       `<circle class="falling-ink" cx="${780 + (i % 7) * 13}" cy="${250 + (i % 9) * 24}" r="${3 + i % 4}" style="animation-delay:${(i % 8) * .18}s"/>`).join('');
     const html = `<svg viewBox="0 0 1280 720" width="100%" height="100%">
-      <rect width="1280" height="720" fill="#cfc4a8"/>
-      ${PineArt.pine({ status: 'sprout', grafted: 3 }, { x: 640, y: 360, scale: 1.5, broken: true, vivid: true })}
-      ${PineArt.sprout({ x: 664, y: 404, scale: 2.6, vivid: true })}
+      ${PineSceneUtil.backdrop('pine-court-4')}
+      ${PineArt.pine({ status: 'sprout', grafted: 3 }, { x: 640, y: 335, scale: 1.46, vivid: true })}
       <g fill="#34332a">${ink}</g>
     </svg>`;
     await PineRenderer.cinematic(html, 6500, { sound: 'sprout' });

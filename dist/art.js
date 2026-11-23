@@ -1,5 +1,5 @@
 /*
- * 六朝松 · 程序化 SVG 美术组件
+ * 六朝松 · 分层插画与 SVG 交互组件
  * 经典脚本：window.PineArt / globalThis.PineArt
  * 所有函数均为纯字符串变换，不读取或修改 DOM。
  * scene() 返回完整 1280×720 SVG；其余组件默认返回可组合的 <g>。
@@ -10,7 +10,6 @@
   var WIDTH = 1280;
   var HEIGHT = 720;
   var XMLNS = 'http://www.w3.org/2000/svg';
-  var VIVID_SPROUT = '#24b86b';
 
   var PALETTES = {
     now: {
@@ -186,6 +185,12 @@
 
   function image(href, attributes) {
     return emptyTag('image', assign({ href: href }, attributes));
+  }
+
+  function sprite(name, x, y, width, height, attributes) {
+    return image('assets/' + safeId(name) + '.webp', assign({
+      x: x, y: y, width: width, height: height, 'pointer-events': 'none'
+    }, attributes));
   }
 
   function use(href, attributes) {
@@ -501,132 +506,48 @@
       grafted: grafted,
       crack: status !== 'normal' || source.crack === true || opts.crack === true,
       sprout: status === 'sprout' || source.sprout === true || opts.sprout === true,
-      support: source.support !== undefined ? source.support !== false : opts.support !== false,
       fence: source.fence !== undefined ? source.fence === true : opts.fence === true
     };
   }
 
-  function pineFoliage(p) {
-    var shapes = [
-      'M 64 173 C 29 139 55 95 104 101 C 111 57 172 47 198 78 C 225 38 285 47 292 86 C 345 62 388 99 371 137 C 413 151 399 202 359 207 C 328 236 280 220 262 196 C 224 227 178 218 162 193 C 122 215 83 205 64 173 Z',
-      'M 169 93 C 152 53 192 18 232 35 C 254 -2 312 7 321 42 C 369 25 402 59 389 95 C 422 121 393 153 357 146 C 323 170 284 148 270 127 C 228 149 187 132 169 93 Z',
-      'M 24 268 C 2 234 33 199 74 208 C 95 174 139 183 151 211 C 187 198 216 223 207 253 C 228 281 194 307 164 293 C 136 318 96 299 88 277 C 61 292 35 285 24 268 Z',
-      'M 300 248 C 290 211 324 188 357 202 C 382 169 430 184 433 217 C 472 221 482 260 452 279 C 425 305 389 286 375 270 C 344 292 312 278 300 248 Z',
-      'M 91 342 C 72 314 96 287 128 294 C 145 266 185 274 193 301 C 225 299 240 329 219 350 C 195 373 166 355 153 344 C 131 365 103 359 91 342 Z'
-    ];
-    return shapes.map(function (d, index) {
-      return path(d, {
-        'class': 'pine-foliage pine-foliage-' + (index + 1) + ' art-sway',
-        fill: index % 2 ? p.foliage : p.foliage,
-        stroke: p.outline, 'stroke-width': 7, 'stroke-linejoin': 'round'
-      });
-    });
-  }
+  // 图鉴分层插画的画布为 1200 × 1000。
+  var PINE_CROWNS = [[95, 62, 532, 127], [698, 208, 458, 121], [33, 320, 510, 138], [634, 432, 534, 138]];
+  var PINE_LEAF_ORDER = [1, 2, 3, 0];
 
-  /** 六朝松。状态：normal / broken / restoring / sprout；修复与接合不会消除裂口。 */
   function pine(state, opts) {
     opts = opts || {};
     var data = normalizePineState(state, opts);
     var p = paletteFrom(opts);
-    var back = [];
-    var trunk = [];
-    var front = [];
-
-    back.push(ellipse(245, 570, 218, 27, { 'class': 'pine-ground-shadow', fill: p.shadow, opacity: 0.2 }));
+    var leafCount = data.status === 'normal' || data.sprout ? 4 : data.status === 'broken' ? 0 : data.grafted;
+    var trunk = sprite('pine-trunk', 110, 26, 980, 951, {
+      'class': 'pine-trunk-group' + (data.crack ? ' pine-crack' : ''),
+      'data-persistent-wound': data.crack ? 'true' : null,
+      preserveAspectRatio: 'none'
+    });
+    var crowns = PINE_LEAF_ORDER.slice(0, leafCount).map(function (branch) {
+      var box = PINE_CROWNS[branch];
+      return sprite('pine-canopy-' + (branch + 1), box[0], box[1], box[2], box[3], {
+        'class': 'pine-foliage pine-foliage-' + (branch + 1) + ' art-sway',
+        preserveAspectRatio: 'none'
+      });
+    }).join('');
+    var wound = '';
+    if (data.sprout) {
+      wound = sprout({ x: 550, y: 608, scale: 1.24, vivid: opts.vivid === true, className: 'pine-wound-sprout' });
+    } else if (data.grafted > 0 && data.crack) {
+      wound = amber({ rings: data.grafted, grafted: data.grafted }, {
+        x: 550, y: 600, scale: .23, era: opts.era, className: 'pine-resin-segments'
+      });
+    }
+    var tree = g(trunk + crowns + wound, { 'class': 'pine-local', transform: 'translate(-241 -227) scale(.4375)' });
+    var ground = ellipse(1, 200, 190, 16, { 'class': 'pine-ground-shadow', fill: p.shadow, opacity: .18 });
     if (data.fence) {
-      back.push(g(
-        line(25, 492, 466, 492, { stroke: p.outline, 'stroke-width': 8 }) +
-        line(25, 535, 466, 535, { stroke: p.outline, 'stroke-width': 7 }) +
-        [45, 115, 185, 255, 325, 395, 455].map(function (x) {
-          return line(x, 463, x, 553, { stroke: p.metal, 'stroke-width': 9, 'stroke-linecap': 'round' });
-        }).join(''),
-        { 'class': 'pine-fence', opacity: 0.72 }
-      ));
+      ground += g(line(-190, 149, 190, 149, { stroke: p.outline, 'stroke-width': 6 }) +
+        [-180, -120, -60, 0, 60, 120, 180].map(function (x) {
+          return line(x, 133, x, 182, { stroke: p.metal, 'stroke-width': 7 });
+        }).join(''), { 'class': 'pine-fence', opacity: .7 });
     }
-    if (data.support) {
-      back.push(g(
-        line(98, 552, 239, 240, { stroke: p.outline, 'stroke-width': 15, 'stroke-linecap': 'round' }) +
-        line(98, 552, 239, 240, { stroke: p.metal, 'stroke-width': 8, 'stroke-linecap': 'round' }) +
-        line(393, 553, 272, 295, { stroke: p.outline, 'stroke-width': 15, 'stroke-linecap': 'round' }) +
-        line(393, 553, 272, 295, { stroke: p.metal, 'stroke-width': 8, 'stroke-linecap': 'round' }) +
-        line(74, 554, 124, 554, { stroke: p.outline, 'stroke-width': 12, 'stroke-linecap': 'round' }) +
-        line(369, 555, 418, 555, { stroke: p.outline, 'stroke-width': 12, 'stroke-linecap': 'round' }) +
-        rect(218, 257, 52, 20, { rx: 6, fill: p.metal, stroke: p.outline, 'stroke-width': 5, transform: 'rotate(-11 244 267)' }),
-        { 'class': 'pine-metal-supports' }
-      ));
-    }
-
-    var foliage = pineFoliage(p);
-    if (data.status === 'normal') {
-      back.push(g(foliage.join(''), { 'class': 'pine-canopy pine-canopy-full' }));
-    } else {
-      var sparse = [foliage[1], foliage[3]];
-      if (data.grafted >= 1) sparse.push(foliage[4]);
-      if (data.grafted >= 2) sparse.push(foliage[0]);
-      if (data.grafted >= 3 || data.status === 'sprout') sparse.push(foliage[2]);
-      back.push(g(sparse.join(''), { 'class': 'pine-canopy pine-canopy-recovering', 'data-restored': data.grafted }));
-    }
-
-    back.push(g(
-      path('M 240 263 C 185 225 130 207 72 205', { fill: 'none', stroke: p.outline, 'stroke-width': 28, 'stroke-linecap': 'round' }) +
-      path('M 240 263 C 185 225 130 207 72 205', { fill: 'none', stroke: p.wood, 'stroke-width': 17, 'stroke-linecap': 'round' }) +
-      path('M 268 216 C 321 180 365 155 423 147', { fill: 'none', stroke: p.outline, 'stroke-width': 25, 'stroke-linecap': 'round' }) +
-      path('M 268 216 C 321 180 365 155 423 147', { fill: 'none', stroke: p.wood, 'stroke-width': 14, 'stroke-linecap': 'round' }) +
-      path('M 208 350 C 157 327 118 310 69 304', { fill: 'none', stroke: p.outline, 'stroke-width': 22, 'stroke-linecap': 'round' }) +
-      path('M 208 350 C 157 327 118 310 69 304', { fill: 'none', stroke: p.wood, 'stroke-width': 12, 'stroke-linecap': 'round' }),
-      { 'class': 'pine-branches' }
-    ));
-
-    trunk.push(path('M 116 560 C 145 487 165 414 191 337 C 218 257 238 177 282 103 L 323 114 C 291 201 282 276 266 351 C 248 437 240 504 270 560 C 229 578 163 579 116 560 Z', {
-      'class': 'pine-trunk', fill: p.wood, stroke: p.outline, 'stroke-width': 10, 'stroke-linejoin': 'round'
-    }));
-    if (data.status !== 'normal') {
-      trunk.push(path('M 282 105 L 294 67 L 306 94 L 327 62 L 323 115 Z', {
-        'class': 'pine-broken-crown', fill: p.paperLine, stroke: p.outline, 'stroke-width': 7, 'stroke-linejoin': 'round'
-      }));
-    }
-    trunk.push(path('M 155 548 C 178 471 185 402 215 318 M 198 551 C 210 472 222 415 238 354 M 252 289 C 265 225 277 176 300 126', {
-      'class': 'pine-bark-lines', fill: 'none', stroke: p.bark, 'stroke-width': 5, 'stroke-linecap': 'round', opacity: 0.8
-    }));
-    trunk.push(path('M 142 527 C 157 501 161 468 167 442 M 211 288 C 223 252 230 219 244 184', {
-      fill: 'none', stroke: p.paperLine, 'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0.42
-    }));
-    trunk.push(g(
-      path('M 151 542 C 112 553 83 570 45 574 C 90 582 132 576 177 560 Z', { fill: p.wood, stroke: p.outline, 'stroke-width': 7 }) +
-      path('M 225 550 C 279 560 325 568 377 558 C 342 585 286 584 239 568 Z', { fill: p.wood, stroke: p.outline, 'stroke-width': 7 }) +
-      path('M 185 552 C 164 576 145 588 117 596', { fill: 'none', stroke: p.outline, 'stroke-width': 12, 'stroke-linecap': 'round' }),
-      { 'class': 'pine-roots art-root-grow' }
-    ));
-
-    if (data.crack) {
-      /* 固定裂口路径：broken/restoring/sprout 共用，不用修复树脂遮盖。 */
-      var crack = 'M 282 145 L 260 205 L 269 242 L 240 294 L 249 332 L 222 395 L 233 427 L 210 505 L 226 478 L 246 429 L 237 398 L 260 337 L 251 298 L 279 246 L 270 208 L 292 150 Z';
-      front.push(path(crack, {
-        'class': 'pine-crack', fill: p.heart, stroke: p.outline, 'stroke-width': 2,
-        'stroke-linejoin': 'round', 'data-persistent-wound': 'true'
-      }));
-      front.push(path('M 259 205 L 241 188 M 243 294 L 221 277 M 226 395 L 204 380', {
-        'class': 'pine-crack-branches', fill: 'none', stroke: p.heart, 'stroke-width': 5, 'stroke-linecap': 'round'
-      }));
-      var repairs = [];
-      if (data.grafted >= 1) repairs.push(path('M 204 479 L 211 458 L 207 441', { fill: 'none', stroke: p.amber, 'stroke-width': 6, 'stroke-linecap': 'round' }));
-      if (data.grafted >= 2) repairs.push(path('M 236 365 L 229 348 L 236 329', { fill: 'none', stroke: p.amber, 'stroke-width': 5, 'stroke-linecap': 'round' }));
-      if (data.grafted >= 3) repairs.push(path('M 276 235 L 268 219 L 273 200', { fill: 'none', stroke: p.amber, 'stroke-width': 5, 'stroke-linecap': 'round' }));
-      front.push(g(repairs.join(''), { 'class': 'pine-resin-segments art-ring-attach', 'data-crack-preserved': 'true' }));
-      if (data.sprout) {
-        front.push(sprout({
-          x: 239, y: 337, scale: 0.68, rotate: 18,
-          vivid: opts.vivid === true, soil: false, support: false,
-          className: 'pine-wound-sprout'
-        }));
-      }
-    }
-
-    var pineLocal = g(back.join(''), { 'class': 'pine-back' }) +
-      g(trunk.join(''), { 'class': 'pine-trunk-group' }) +
-      g(front.join(''), { 'class': 'pine-front' });
-    /* x/y 是视觉中心，便于同一机位切换树的状态。 */
-    return component('pine', opts, g(pineLocal, { 'class': 'pine-local', transform: 'translate(-240 -300)' }), {
+    return component('pine', opts, ground + tree, {
       'class': 'pine-art art-pine pine--' + data.status + (opts.className ? ' ' + opts.className : ''),
       'data-state': data.status,
       'data-grafted': data.grafted,
@@ -634,56 +555,21 @@
     });
   }
 
-  /** 守忆者：无五官的浓墨站姿；仅转头时允许一小片灰白眼部亮点。 */
+  /** 四种姿态共用短发、中山装和无五官的墨色剪影。 */
   function keeper(opts) {
     opts = opts || {};
-    var p = paletteFrom(opts);
     var pose = opts.pose || (opts.reach ? 'reach' : 'stand');
     var fading = opts.fading || opts.faint || pose === 'fading';
     var dissolve = clamp(opts.dissolve !== undefined ? opts.dissolve : (pose === 'dissolve' ? 1 : 0), 0, 1);
-    var opacity = clamp(opts.opacity !== undefined ? opts.opacity : (fading ? 0.46 : 0.94), 0, 1);
-    opacity *= 1 - dissolve * 0.72;
+    var opacity = (fading ? .53 : .96) * (1 - dissolve * .72);
     var ink = opts.ink || '#24211f';
+    var reaching = pose === 'reach' || pose === 'turn-reach' || pose === 'point';
+    var asset = reaching ? 'reach' : pose === 'turn' ? 'turn' : pose === 'lowered' || pose === 'shake' ? 'lowered' : 'stand';
     var body = [];
-    body.push(ellipse(91, 405, 74, 13, { fill: p.shadow, opacity: 0.18 * (1 - dissolve) }));
-    body.push(path('M 60 96 C 45 103 36 118 34 142 L 43 243 L 54 294 L 49 382 L 76 389 L 91 290 L 103 389 L 132 386 L 127 286 L 139 225 L 143 139 C 140 116 124 101 111 96 Z', {
-      'class': 'keeper-body', fill: ink, stroke: ink, 'stroke-width': 7, 'stroke-linejoin': 'round', opacity: opacity
-    }));
-    body.push(path('M 65 34 C 71 9 108 4 123 26 C 139 49 128 81 111 96 C 93 107 66 92 60 71 C 56 57 59 44 65 34 Z', {
-      'class': 'keeper-featureless-head', fill: ink, stroke: ink, 'stroke-width': 6, opacity: opacity
-    }));
-    var leftArm = 'M 47 126 C 30 170 27 217 35 263';
-    var rightArm = 'M 128 128 C 148 176 148 218 139 259';
-    if (pose === 'reach' || pose === 'turn-reach') rightArm = 'M 128 130 C 161 143 181 167 210 184 C 223 191 235 190 247 183';
-    if (pose === 'point') rightArm = 'M 128 132 C 165 127 198 111 232 93';
-    if (pose === 'lowered') rightArm = 'M 128 132 C 146 183 139 238 126 282';
-    body.push(path(leftArm, {
-      'class': 'keeper-arm keeper-arm-left', fill: 'none', stroke: ink,
-      'stroke-width': 27, 'stroke-linecap': 'round', opacity: opacity
-    }));
-    body.push(path(rightArm, {
-      'class': 'keeper-arm keeper-arm-right art-keeper-gesture', fill: 'none', stroke: ink,
-      'stroke-width': 25, 'stroke-linecap': 'round', opacity: opacity
-    }));
-    body.push(path('M 64 104 L 88 132 L 112 103 M 73 101 L 88 113 L 103 100', {
-      'class': 'keeper-student-collar', fill: 'none', stroke: '#68635b',
-      'stroke-width': 4.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: opacity * 0.82
-    }));
-    var showEye = opts.eye === true || opts.headTurn === true || pose === 'turn' || pose === 'turn-reach';
-    if (showEye) {
-      body.push(path('M 111 49 L 123 47 L 125 52 L 113 55 Z', {
-        'class': 'keeper-turn-eye', fill: '#b3afa3', opacity: opacity * 0.82
-      }));
-    }
-    var edge = [
-      [54, 121, 4], [34, 183, 3], [141, 203, 4], [51, 303, 3],
-      [130, 332, 3], [64, 67, 2.5], [127, 82, 3], [42, 239, 2]
-    ];
-    body.push(g(edge.map(function (dot, i) {
-      return circle(dot[0] + (fading ? (i % 2 ? -7 : 8) : 0), dot[1], dot[2], {
-        fill: ink, opacity: opacity * (fading ? 0.38 : 0.62), 'class': 'keeper-ink-edge'
-      });
-    }).join(''), { 'class': 'keeper-scattered-edge' }));
+    var portrait = g(sprite('keeper-' + asset, reaching ? -60 : 54, 36, reaching ? 186 : 101, 345, {
+      'class': 'keeper-featureless-head keeper-ink-silhouette',
+      preserveAspectRatio: 'xMidYMax meet'
+    }), { opacity: opacity });
 
     if (dissolve > 0) {
       var particles = [];
@@ -704,7 +590,7 @@
     }
 
     var classes = 'pine-art art-keeper keeper--' + pose + (fading ? ' is-fading' : '') + (pose === 'shake' ? ' is-shaking art-ink-shiver' : '') + (opts.className ? ' ' + opts.className : '');
-    return component('keeper', opts, g(g(body.join(''), { 'class': 'keeper-ink-silhouette' }), {
+    return component('keeper', opts, g(portrait + body.join(''), {
       'class': 'keeper-local', transform: 'translate(-120 -205)'
     }), {
       'class': classes,
@@ -1184,7 +1070,16 @@
     opts = opts || {};
     var normalized = normalizeBuilding(id);
     var p = paletteFrom(opts);
-    var content = opts.topDown ? buildingTopDown(normalized, p) : buildingFacade(normalized, p);
+    var content;
+    if (opts.topDown) {
+      content = buildingTopDown(normalized, p);
+    } else if (Object.prototype.hasOwnProperty.call(BUILDING_NAMES, normalized)) {
+      content = sprite('building-' + normalized, 95, 43, 290, 191, {
+        'class': 'building-facade', preserveAspectRatio: 'xMidYMax meet'
+      });
+    } else {
+      content = buildingFacade(normalized, p);
+    }
     if (opts.label) {
       content += text(BUILDING_NAMES[normalized] || String(id || ''), 240, opts.topDown ? 326 : 337, {
         'class': 'building-label', fill: p.ink, 'font-size': 20,
@@ -1206,12 +1101,7 @@
 
   function filterLens(opts) {
     opts = opts || {};
-    var p = paletteFrom(opts);
-    var lens = 'M -28 -23 C -12 -35 15 -32 28 -17 L 22 -7 L 31 -1 C 34 18 16 33 -4 32 C -26 31 -37 11 -32 -8 Z';
-    return component('lens', opts,
-      path(lens, { fill: '#565747', 'fill-opacity': 0.82, stroke: p.outline, 'stroke-width': 5, 'stroke-linejoin': 'round', 'class': 'special-lens-glass' }) +
-      path('M -22 -17 C -8 -26 8 -25 18 -19', { fill: 'none', stroke: '#838174', 'stroke-width': 2, opacity: 0.5 }) +
-      circle(0, 0, 37, { fill: 'none', stroke: p.brass, 'stroke-width': 3, 'stroke-dasharray': opts.framed === false ? null : '6 4', 'class': 'special-lens-frame' }), {
+    return component('lens', opts, sprite('filter', -38, -38, 76, 76, { 'class': 'special-lens-glass' }), {
       'class': 'pine-art art-lens special-lens' + (opts.className ? ' ' + opts.className : ''),
       'data-notch': 'upper-right'
     });
@@ -1219,80 +1109,45 @@
 
   function cameraBag(opts) {
     opts = opts || {};
-    var p = paletteFrom(opts);
-    var out = [];
-    out.push(path('M 18 28 Q 22 1 52 2 L 91 2 Q 119 5 123 30', { fill: 'none', stroke: p.outline, 'stroke-width': 10, 'stroke-linecap': 'round' }));
-    out.push(rect(0, 25, 140, 91, { rx: 15, fill: p.wood, stroke: p.outline, 'stroke-width': 7 }));
-    if (opts.open) {
-      out.push(path('M 5 37 L 29 -4 L 117 2 L 136 38 Z', { fill: p.wallAlt, stroke: p.outline, 'stroke-width': 6, 'class': 'camera-bag-open-flap' }));
-      out.push(rect(25, 46, 91, 50, { rx: 5, fill: p.heart, opacity: 0.55 }));
-    } else {
-      out.push(path('M 3 38 Q 67 67 137 38 L 131 75 Q 69 95 8 74 Z', { fill: p.wallAlt, stroke: p.outline, 'stroke-width': 5, 'class': 'camera-bag-flap' }));
+    var content = opts.open
+      ? sprite('bag-open', -11, -22, 163, 151, { 'class': 'camera-bag-flap' })
+      : sprite('bag-closed', 0, -10, 140, 137, { 'class': 'camera-bag-flap' });
+    if (opts.open && opts.letter) {
+      content += path('M 75 42 Q 88 39 103 41 L 101 52 Q 88 55 76 54 Z', {
+        'class': 'camera-bag-letter', fill: '#bd9f72', stroke: '#49392b', 'stroke-width': 1.2
+      }) + path('M 80 47 Q 89 44 98 46', { fill: 'none', stroke: '#8d704d', 'stroke-width': .65 });
     }
-    out.push(rect(57, 69, 27, 22, { rx: 3, fill: p.brass, stroke: p.outline, 'stroke-width': 4, 'class': 'camera-bag-clasp' }));
-    if (opts.letter) {
-      out.push(path('M 86 15 L 125 20 L 118 66 L 80 60 Z', { fill: p.paperLine, stroke: p.outline, 'stroke-width': 3, 'class': 'camera-bag-letter', 'data-private-letter': 'player-only' }));
-      out.push(line(89, 30, 116, 34, { stroke: p.ink, 'stroke-width': 2, opacity: 0.5 }));
+    if (opts.open && opts.lensInBag) {
+      content += ellipse(56, 74, 17, 5, { fill: '#24201c', opacity: .55 });
+      content += filterLens({ x: 56, y: 69, scaleX: .56, scaleY: .21, className: 'camera-bag-lens' });
     }
-    if (opts.interactive) out.push(rect(-8, -10, 156, 137, { fill: 'transparent', 'class': 'art-hit-area', 'pointer-events': 'all', 'data-hit': 'camera-bag' }));
-    return component('camera-bag', opts, out.join(''), {
+    if (opts.interactive) content += hitArea(-8, -10, 156, 137, { hitId: 'camera-bag' });
+    return component('camera-bag', opts, content, {
       'class': 'pine-art art-camera-bag ' + (opts.open ? 'is-open' : 'is-closed') + (opts.className ? ' ' + opts.className : '')
     });
   }
 
   function oldPhoto(opts) {
     opts = opts || {};
-    var p = paletteFrom(opts);
-    var content = rect(-46, -59, 92, 118, { fill: p.paperLine, stroke: p.outline, 'stroke-width': 5, transform: 'rotate(-5)' });
-    content += rect(-36, -48, 72, 78, { fill: p.sky, stroke: p.outline, 'stroke-width': 3, transform: 'rotate(-5)' });
-    content += path('M -8 22 L -3 -30 L 5 -42 L 9 21', { fill: p.wood, stroke: p.outline, 'stroke-width': 4, transform: 'rotate(-5)' });
-    content += circle(19, 3, 5, { fill: p.ink, transform: 'rotate(-5)' });
-    content += path('M 18 8 L 15 24 L 23 24 Z', { fill: p.ink, transform: 'rotate(-5)', 'class': 'old-photo-figure' });
-    return component('photo', opts, content, { 'class': 'pine-art art-photo old-photo' + (opts.className ? ' ' + opts.className : '') });
+    var content = sprite('old-photo', -78, -51, 156, 102);
+    if (opts.pinned) {
+      content += rect(-18, -54, 37, 12, { rx: 1, fill: '#afa387', opacity: .78, transform: 'rotate(4)' });
+    }
+    return component('photo', opts, content, {
+      'class': 'pine-art art-photo old-photo' + (opts.className ? ' ' + opts.className : '')
+    });
   }
 
-  /** 序章相机、三脚架与相机包。filterInstalled 只改变镜片，不自行生成守忆者。 */
   function camera(opts) {
     opts = opts || {};
-    var p = paletteFrom(opts);
     var installed = opts.filterInstalled === true || opts.specialLens === true || opts.filter === true;
-    var out = [];
-    out.push(ellipse(145, 398, 125, 15, { fill: p.shadow, opacity: 0.2 }));
-    out.push(g(
-      line(132, 181, 58, 388, { stroke: p.outline, 'stroke-width': 13, 'stroke-linecap': 'round' }) +
-      line(132, 181, 58, 388, { stroke: p.metal, 'stroke-width': 7, 'stroke-linecap': 'round' }) +
-      line(147, 181, 153, 391, { stroke: p.outline, 'stroke-width': 13, 'stroke-linecap': 'round' }) +
-      line(147, 181, 153, 391, { stroke: p.metal, 'stroke-width': 7, 'stroke-linecap': 'round' }) +
-      line(159, 181, 232, 388, { stroke: p.outline, 'stroke-width': 13, 'stroke-linecap': 'round' }) +
-      line(159, 181, 232, 388, { stroke: p.metal, 'stroke-width': 7, 'stroke-linecap': 'round' }) +
-      line(86, 303, 203, 303, { stroke: p.outline, 'stroke-width': 7, 'stroke-linecap': 'round' }),
-      { 'class': 'camera-tripod' }
-    ));
-    out.push(rect(127, 164, 31, 39, { rx: 5, fill: p.metal, stroke: p.outline, 'stroke-width': 6 }));
-    out.push(path('M 55 65 L 88 33 L 169 33 L 194 66 L 232 78 L 232 172 L 49 172 L 42 93 Z', {
-      'class': 'camera-body', fill: p.metal, stroke: p.outline, 'stroke-width': 8, 'stroke-linejoin': 'round'
-    }));
-    out.push(rect(64, 78, 63, 34, { rx: 5, fill: p.heart, stroke: p.outline, 'stroke-width': 5, 'class': 'camera-viewfinder' }));
-    out.push(rect(73, 85, 44, 18, { fill: p.window, opacity: 0.55 }));
-    out.push(circle(164, 123, 57, { fill: p.heart, stroke: p.outline, 'stroke-width': 8, 'class': 'camera-normal-lens' }));
-    out.push(circle(164, 123, 39, { fill: '#555b57', stroke: p.brass, 'stroke-width': 5 }));
-    out.push(circle(164, 123, 21, { fill: '#3f4441', stroke: p.outline, 'stroke-width': 3 }));
-    out.push(rect(109, 68, 110, 111, {
-      rx: 9, fill: 'none', stroke: installed ? p.brass : p.outline,
-      'stroke-width': 5, 'stroke-dasharray': installed ? null : '9 6',
-      'class': 'camera-filter-frame ' + (installed ? 'is-filled' : 'is-empty'), 'data-filter': installed ? 'installed' : 'empty'
-    }));
-    if (installed) {
-      out.push(filterLens({ x: 164, y: 123, scale: 0.9, framed: false, palette: p, className: 'camera-installed-special-lens' }));
-    }
-    out.push(circle(211, 56, 10, { fill: p.brass, stroke: p.outline, 'stroke-width': 4, 'class': 'camera-shutter' }));
+    var out = [sprite('camera', 10, 18, 266, 370, { 'class': 'camera-tripod' })];
+    if (installed) out.push(filterLens({ x: 142, y: 110, scale: 1.35, className: 'camera-installed-special-lens' }));
     if (opts.bag !== false) {
-      out.push(cameraBag({ x: 238, y: 286, scale: 0.82, open: opts.openBag === true, letter: opts.letter === true, interactive: opts.interactive === true, palette: p }));
+      out.push(cameraBag({ x: 226, y: 266, scale: .82, open: opts.openBag, letter: opts.letter, interactive: opts.interactive }));
     }
-    if (opts.photo) out.push(oldPhoto({ x: 266, y: 251, scale: 0.65, rotate: 9, palette: p }));
-    if (opts.interactive) {
-      out.push(rect(35, 24, 210, 166, { fill: 'transparent', 'class': 'art-hit-area camera-hit', 'pointer-events': 'all', 'data-hit': 'camera' }));
-    }
+    if (opts.photo) out.push(oldPhoto({ x: 338, y: 343, scale: .55, rotate: -11 }));
+    if (opts.interactive) out.push(hitArea(35, 24, 210, 166, { hitId: 'camera' }));
     return component('camera', opts, g(out.join(''), { 'class': 'camera-local', transform: 'translate(-155 -205)' }), {
       'class': 'pine-art art-camera ' + (installed ? 'has-special-lens' : 'needs-special-lens') + (opts.className ? ' ' + opts.className : ''),
       'data-filter': installed ? 'installed' : 'empty',
@@ -1300,51 +1155,16 @@
     });
   }
 
-  /** 新芽：只有 opts.vivid === true 时使用全篇唯一真正饱和的绿色。 */
   function sprout(opts) {
     opts = opts || {};
-    var p = paletteFrom(opts);
     var vivid = opts.vivid === true;
-    var leaf = vivid ? VIVID_SPROUT : p.foliage;
-    var out = [];
-    if (opts.soil) {
-      out.push(path('M -74 4 Q -41 -20 0 -11 Q 43 -22 79 5 Q 34 23 -12 19 Q -48 21 -74 4 Z', {
-        fill: opts.watered ? p.bark : p.ground, stroke: p.outline, 'stroke-width': 5, 'class': opts.watered ? 'sprout-soil is-watered' : 'sprout-soil is-dry'
-      }));
-      if (!opts.watered) out.push(path('M -46 4 L -30 -3 L -17 5 M 25 2 L 39 -5 L 52 2', { fill: 'none', stroke: p.outline, 'stroke-width': 2.5, opacity: 0.55 }));
-    }
-    if (opts.crack) {
-      out.push(path('M -8 10 L -2 -8 L -9 -23 L 2 -38 L 7 -17 L 2 -4 L 10 11 Z', { fill: p.heart, 'class': 'sprout-crack', 'data-persistent-wound': 'true' }));
-    }
-    if (opts.support) {
-      out.push(path('M -32 5 L -24 -95 L -51 -129 M -24 -95 L 7 -128', {
-        fill: 'none', stroke: p.outline, 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'class': 'sprout-y-support-outline'
-      }));
-      out.push(path('M -32 5 L -24 -95 L -51 -129 M -24 -95 L 7 -128', {
-        fill: 'none', stroke: p.wood, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'class': 'sprout-y-support'
-      }));
-    }
-    out.push(path('M 0 2 C -3 -28 7 -58 1 -96', {
-      fill: 'none', stroke: p.outline, 'stroke-width': vivid ? 9 : 8, 'stroke-linecap': 'round', 'class': 'sprout-stem-outline art-grow'
-    }));
-    out.push(path('M 0 2 C -3 -28 7 -58 1 -96', {
-      fill: 'none', stroke: leaf, 'stroke-width': vivid ? 5 : 4, 'stroke-linecap': 'round', 'class': 'sprout-stem art-grow'
-    }));
-    out.push(path('M 2 -66 C -18 -94 -50 -92 -57 -68 C -38 -51 -14 -51 2 -66 Z', {
-      fill: leaf, stroke: p.outline, 'stroke-width': 4, 'stroke-linejoin': 'round', 'class': 'sprout-leaf sprout-leaf-left art-sway'
-    }));
-    out.push(path('M 2 -83 C 20 -111 52 -109 59 -84 C 41 -66 18 -66 2 -83 Z', {
-      fill: leaf, stroke: p.outline, 'stroke-width': 4, 'stroke-linejoin': 'round', 'class': 'sprout-leaf sprout-leaf-right art-sway'
-    }));
-    if (opts.grown) {
-      out.push(path('M 1 -95 C -12 -118 -7 -139 7 -148 C 22 -127 18 -106 1 -95 Z', {
-        fill: leaf, stroke: p.outline, 'stroke-width': 4, 'class': 'sprout-leaf sprout-leaf-new art-grow'
-      }));
-    }
-    out.push(path('M -43 -73 Q -22 -72 -4 -65 M 47 -87 Q 26 -84 6 -81', {
-      fill: 'none', stroke: vivid ? '#19794e' : p.bark, 'stroke-width': 2, opacity: 0.65, 'class': 'sprout-leaf-veins'
-    }));
-    return component('sprout', opts, out.join(''), {
+    var content = opts.seedling
+      ? sprite('seedling', -138, -248, 300, 300, { 'class': 'sprout-illustration' })
+      : sprite('shoot', -61, -121, 122, 124, {
+      'class': 'sprout-illustration',
+      style: vivid ? 'filter:hue-rotate(35deg) saturate(1.7)' : null
+    });
+    return component('sprout', opts, content, {
       'class': 'pine-art art-sprout ' + (vivid ? 'is-vivid art-new-life' : 'is-muted') + (opts.className ? ' ' + opts.className : ''),
       'data-vivid': vivid ? 'true' : 'false',
       'data-color-role': vivid ? 'unique-saturated-green' : 'restrained-foliage'
@@ -1352,23 +1172,11 @@
   }
 
   function wateringCan(opts) {
-    opts = opts || {};
-    var p = paletteFrom(opts);
-    var content = path('M 18 32 Q -8 33 -12 63 L -8 111 Q 30 127 67 108 L 70 49 Q 55 30 18 32 Z', { fill: p.metal, stroke: p.outline, 'stroke-width': 6 });
-    content += path('M 66 55 L 117 24 L 129 38 L 74 84 Z', { fill: p.metal, stroke: p.outline, 'stroke-width': 6, 'stroke-linejoin': 'round' });
-    content += path('M 118 22 L 143 25 L 145 43 L 128 46 Z', { fill: p.brass, stroke: p.outline, 'stroke-width': 5 });
-    content += path('M 3 47 C -41 42 -42 104 -6 101', { fill: 'none', stroke: p.outline, 'stroke-width': 9, 'stroke-linecap': 'round' });
-    content += ellipse(30, 34, 25, 8, { fill: p.heart, stroke: p.outline, 'stroke-width': 4 });
-    return component('watering-can', opts, content, { 'class': 'pine-art art-watering-can' + (opts.className ? ' ' + opts.className : '') });
+    return component('watering-can', opts, sprite('watering-can', -30, 16, 184, 125));
   }
 
   function supportWood(opts) {
-    opts = opts || {};
-    var p = paletteFrom(opts);
-    var content = path('M 0 100 L 7 -45 L -37 -91 M 7 -45 L 49 -89', { fill: 'none', stroke: p.outline, 'stroke-width': 19, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
-    content += path('M 0 100 L 7 -45 L -37 -91 M 7 -45 L 49 -89', { fill: 'none', stroke: p.wood, 'stroke-width': 11, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'class': 'support-wood-y' });
-    content += path('M -10 -15 L 21 -20', { stroke: p.brass, 'stroke-width': 7, 'stroke-linecap': 'round', 'class': 'support-wood-binding' });
-    return component('support', opts, content, { 'class': 'pine-art art-support support-wood' + (opts.className ? ' ' + opts.className : '') });
+    return component('support', opts, sprite('support', -90, -93, 180, 192, { 'class': 'support-wood-y' }));
   }
 
   function hitArea(x, y, width, height, opts) {
@@ -1451,6 +1259,7 @@
     polyline: polyline,
     text: text,
     image: image,
+    sprite: sprite,
     use: use,
     hitArea: hitArea,
     gearPath: gearPath,
